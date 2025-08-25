@@ -53,7 +53,7 @@ curl -s -X POST "%BASE%/api/auth/login/" ^
 {
   "refresh": "<REFRESH_JWT>",
   "access": "<ACCESS_JWT>",
-  "role":"super_admin"
+  "role":"super_admin" 
 }
 ```
 
@@ -77,7 +77,10 @@ curl "%BASE%/api/me/" -H "Authorization: Bearer %ACCESS%"
   "email": "test2@example.com",
   "role": "super_admin",
   "tenant_id": 23,
-  "tenant_ws": "ws://147.93.127.215:8000/api/v16/85f8e0c7dc075c57b0f2141bc1dabe45"
+  "tenant_ws": "ws://147.93.127.215:8000/api/v16/85f8e0c7dc075c57b0f2141bc1dabe45",
+  "username":"Yona",
+  "full_name":"Yonatan",
+  "phone":"0912122222"
 }
 ```
 
