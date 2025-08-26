@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import AppWrapper from "@/components/AppWrapper";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -13,8 +14,6 @@ import NormalUserApp from "./user/NormalUserApp";
 import { Protected, RequireRole } from "@/lib/roles";
 // import AdminApp from "@/admin/AdminApp";
 import AdminApp from "@/pages/Dashboard";
-import CreateNewPassword from "./pages/CreateNewPassword";
-import SplashScreen from "./pages/SplashScreen";
 import WelcomeScreen from "./pages/WelcomeScreen";
 
 function ProtectedRoute({ children }) {
@@ -22,66 +21,104 @@ function ProtectedRoute({ children }) {
   return isAuth ? children : <Navigate to="/login" />;
 }
 
+function AuthRedirect() {
+  const { isAuth } = useAuth();
+
+  if (isAuth) {
+    return <Navigate to="/app" replace />;
+  }
+
+  return <WelcomeScreen />;
+}
+
 export default function App() {
   return (
-    <Routes>
-      <Route path="/cp/:id" element={<CpDetail />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/splash" element={<SplashScreen />} />
-      <Route path="/home" element={<WelcomeScreen />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/diagnose" element={<DiagnoseList />} />
-      <Route path="/diagnose" element={<DiagnoseList />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/create-password" element={<CreateNewPassword />} />
-      <Route path="/diagnose/:id" element={<DiagnoseDetail />} />
-      <Route
-        path="/reset-password/:uid/:token"
-        element={<ResetPasswordConfirm />}
-      />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            {" "}
-            <Dashboard />{" "}
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        }
-      />
-      {/* Admin area (super_admin only) */}
-      <Route
-        path="/*"
-        element={
-          <Protected>
-            <RequireRole allow={["super_admin"]} redirect="/app">
-              <AdminApp />
-            </RequireRole>
-          </Protected>
-        }
-      />
+    <AppWrapper>
+      <Routes>
+        {/* Initial route - redirects to splash */}
+        <Route path="/" element={<Navigate to="/splash" replace />} />
 
-      {/* Normal user area */}
-      <Route
-        path="/app/*"
-        element={
-          <Protected>
-            <RequireRole allow={["user"]} redirect="/">
-              <NormalUserApp />
-            </RequireRole>
-          </Protected>
-        }
-      />
+        {/* Public routes that don't require authentication */}
+        <Route path="/home" element={<AuthRedirect />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/reset-password/:uid/:token"
+          element={<ResetPasswordConfirm />}
+        />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Protected routes that require authentication */}
+        <Route
+          path="/cp/:id"
+          element={
+            <ProtectedRoute>
+              <CpDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diagnose"
+          element={
+            <ProtectedRoute>
+              <DiagnoseList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diagnose/:id"
+          element={
+            <ProtectedRoute>
+              <DiagnoseDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Main app routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin area (super_admin only) */}
+        <Route
+          path="/admin/*"
+          element={
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/app">
+                <AdminApp />
+              </RequireRole>
+            </Protected>
+          }
+        />
+
+        {/* Normal user area */}
+        <Route
+          path="/app/*"
+          element={
+            <Protected>
+              <RequireRole allow={["user"]} redirect="/">
+                <NormalUserApp />
+              </RequireRole>
+            </Protected>
+          }
+        />
+
+        {/* Fallback - redirect to appropriate screen */}
+        <Route path="*" element={<Navigate to="/home" replace />} />
+      </Routes>
+    </AppWrapper>
   );
 }

@@ -1,5 +1,12 @@
 // src/lib/auth.jsx
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { fetchJson } from "@/lib/api";
 
 const AuthCtx = createContext(null);
@@ -159,7 +166,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password }),
     });
 
-    const access  = data.access || data.token || data.accessToken;
+    const access = data.access || data.token || data.accessToken;
     const refresh = data.refresh;
     if (!access) throw new Error("No access token");
 
@@ -176,47 +183,73 @@ export function AuthProvider({ children }) {
   }
 
   // Auth.jsx (only the signup function)
-async function signup({
-  username,
-  email,
-  full_name,
-  phone,
-  password,
-  password2,
-  role = "user",
-}) {
-  const payload = {
-    username: (username || "").trim(),
-    email: (email || "").trim(),
-    full_name: (full_name || "").trim(),
-    phone: (phone || "").trim(),
+  async function signup({
+    username,
+    email,
+    full_name,
+    phone,
     password,
     password2,
-    role, // "user" or "super_admin"
-  };
+    role = "user",
+  }) {
+    const payload = {
+      username: (username || "").trim(),
+      email: (email || "").trim(),
+      full_name: (full_name || "").trim(),
+      phone: (phone || "").trim(),
+      password,
+      password2,
+      role, // "user" or "super_admin"
+    };
 
-  try {
-    // If your fetchJson auto-prefixes /api, keep "/auth/signup/" as-is
-    return await fetchJson("/auth/signup/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (e) {
-    // Normalize server-side field errors into a friendly message
-    let msg = e?.message || "Signup failed";
-    if (e?.data && typeof e.data === "object") {
-      // e.g. { password2: ["Passwords do not match."] }
-      const firstKey = Object.keys(e.data)[0];
-      if (firstKey) {
-        const val = e.data[firstKey];
-        if (Array.isArray(val) && val[0]) msg = val[0];
-        else if (typeof val === "string") msg = val;
+    try {
+      // If your fetchJson auto-prefixes /api, keep "/auth/signup/" as-is
+      return await fetchJson("/auth/signup/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      // Normalize server-side field errors into a friendly message
+      let msg = e?.message || "Signup failed";
+      if (e?.data && typeof e.data === "object") {
+        // e.g. { password2: ["Passwords do not match."] }
+        const firstKey = Object.keys(e.data)[0];
+        if (firstKey) {
+          const val = e.data[firstKey];
+          if (Array.isArray(val) && val[0]) msg = val[0];
+          else if (typeof val === "string") msg = val;
+        }
       }
+      throw new Error(msg);
     }
-    throw new Error(msg);
   }
-}
 
+  async function forgotPassword(email) {
+    try {
+      const res = await fetchJson("/auth/password/reset/", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      return res;
+    } catch (err) {}
+  }
+
+  async function resetPassword(uid, token, newPassword) {
+    try {
+      const res = await fetchJson("/auth/password/reset/confirm/", {
+        method: "POST",
+        body: JSON.stringify({
+          uid,
+          token,
+          new_password: newPassword,
+        }),
+      });
+      return res;
+    } catch (err) {
+      clearTokens();
+      setUser(null);
+    }
+  }
 
   async function logout() {
     try {
@@ -240,6 +273,8 @@ async function signup({
       loading,
       login,
       signup,
+      forgotPassword,
+      resetPassword,
       logout,
       refreshTokens,
       setUser, // exposed for rare cases
@@ -253,4 +288,3 @@ async function signup({
 export function useAuth() {
   return useContext(AuthCtx);
 }
-

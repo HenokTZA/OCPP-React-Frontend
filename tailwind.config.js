@@ -7,6 +7,9 @@ export default {
         background: "#f9fafb",
         foreground: "#111",
         muted: "#6b7280"
+      },
+      backgroundImage: {
+        'radial-gradient': 'radial-gradient(var(--tw-gradient-stops))',
       }
     }
   },
