@@ -25,7 +25,6 @@ function AuthRedirect() {
   const { isAuth, user } = useAuth();
 
   if (isAuth) {
-    // return <Navigate to="/app" replace />;
     if (user.role === "user") {
       return <Navigate to="/app" replace />;
     } else {
