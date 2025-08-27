@@ -2,7 +2,14 @@ import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTheme } from "@/lib/theme";
 import ThemeToggle from "@/components/ThemeToggle";
-import { FiEye, FiEyeOff, FiLoader, FiLock } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiEye,
+  FiEyeOff,
+  FiLoader,
+  FiLock,
+  FiXCircle,
+} from "react-icons/fi";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/lib/auth";
 
@@ -22,17 +29,22 @@ const ResetPasswordConfirm = () => {
     if (isLoading) return;
 
     setIsLoading(true);
+    setMessage(null);
+
     try {
       const data = await resetPassword(uid, token, password);
       if (data.detail) {
-        setMessage("✅ " + data.detail);
+        setMessage({ type: "success", text: data.detail });
         // Optional: redirect back to login after a delay
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        setMessage("❌ " + (data.detail || "Failed to reset"));
+        setMessage({
+          type: "error",
+          text: data.detail || "Failed to reset",
+        });
       }
     } catch {
-      setMessage("❌ Network error");
+      setMessage({ type: "error", text: "Network error" });
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +60,14 @@ const ResetPasswordConfirm = () => {
     >
       <ThemeToggle />
 
-      <div className="w-full max-w-sm">
+      <div
+        className={`w-full max-w-md h-auto sm:rounded-3xl sm:py-24 sm:px-8 
+                 sm:backdrop-blur-lg sm:border ${
+                   isDark
+                     ? "sm:border-white/10 sm:bg-white/5"
+                     : "sm:border-black/10 sm:bg-black/5"
+                 }`}
+      >
         {/* Header */}
         <div className="text-center space-y-3 mb-8">
           <div className="flex justify-center">
@@ -75,8 +94,23 @@ const ResetPasswordConfirm = () => {
         </div>
 
         {message && (
-          <div className={`mb-4 ${isDark ? "text-gray-200" : ""}`}>
-            {message}
+          <div
+            className={`ml-2 mb-4 flex items-center gap-2 text-sm font-medium ${
+              isDark ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            {message.type === "success" ? (
+              isDark ? (
+                <FiCheckCircle className="text-green-400 w-5 h-5" />
+              ) : (
+                <FiCheckCircle className="text-green-600 w-5 h-5" />
+              )
+            ) : isDark ? (
+              <FiXCircle className="text-red-400 w-5 h-5" />
+            ) : (
+              <FiXCircle className="text-red-600 w-5 h-5" />
+            )}
+            <span>{message.text}</span>
           </div>
         )}
 

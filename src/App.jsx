@@ -22,10 +22,15 @@ function ProtectedRoute({ children }) {
 }
 
 function AuthRedirect() {
-  const { isAuth } = useAuth();
+  const { isAuth, user } = useAuth();
 
   if (isAuth) {
-    return <Navigate to="/app" replace />;
+    // return <Navigate to="/app" replace />;
+    if (user.role === "user") {
+      return <Navigate to="/app" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <WelcomeScreen />;
@@ -37,6 +42,14 @@ export default function App() {
       <Routes>
         {/* Initial route - redirects to splash */}
         <Route path="/" element={<Navigate to="/splash" replace />} />
+        {/* <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        /> */}
 
         {/* Public routes that don't require authentication */}
         <Route path="/home" element={<AuthRedirect />} />

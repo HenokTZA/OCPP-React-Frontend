@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiMail, FiLoader } from "react-icons/fi";
+import { FiMail, FiLoader, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "@/lib/theme";
 import logo from "@/assets/logo.png";
@@ -19,17 +19,21 @@ const ForgotPassword = () => {
     if (isLoading) return;
 
     setIsLoading(true);
+    setMessage(null);
 
     try {
       const data = await forgotPassword(email);
       if (data.ok) {
-        setMessage("✅ " + data.detail);
+        setMessage({ type: "success", text: data.detail });
       } else {
-        setMessage("❌ " + (data.detail || "Something went wrong"));
+        setMessage({
+          type: "error",
+          text: data.detail || "Something went wrong",
+        });
       }
     } catch (err) {
       console.log(err);
-      setMessage("❌ Network error");
+      setMessage({ type: "error", text: "Network error" });
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +48,14 @@ const ForgotPassword = () => {
       }`}
     >
       <ThemeToggle />
-      <div className="w-full max-w-sm">
+      <div
+        className={`w-full max-w-md h-auto sm:rounded-3xl sm:py-24 sm:px-8 
+                 sm:backdrop-blur-lg sm:border ${
+                   isDark
+                     ? "sm:border-white/10 sm:bg-white/5"
+                     : "sm:border-black/10 sm:bg-black/5"
+                 }`}
+      >
         {/* Header */}
         <div className="text-center space-y-3 mb-8">
           <div className="flex justify-center">
@@ -71,8 +82,23 @@ const ForgotPassword = () => {
         </div>
 
         {message && (
-          <div className={`mb-4 ${isDark ? "text-gray-200" : ""}`}>
-            {message}
+          <div
+            className={`ml-2 mb-4 flex items-center gap-2 text-sm font-medium ${
+              isDark ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            {message.type === "success" ? (
+              isDark ? (
+                <FiCheckCircle className="text-green-400 w-5 h-5" />
+              ) : (
+                <FiCheckCircle className="text-green-600 w-5 h-5" />
+              )
+            ) : isDark ? (
+              <FiXCircle className="text-red-400 w-5 h-5" />
+            ) : (
+              <FiXCircle className="text-red-600 w-5 h-5" />
+            )}
+            <span>{message.text}</span>
           </div>
         )}
 

@@ -14,8 +14,11 @@ import {
   FiUser,
   FiUserCheck,
   FiLoader,
+  FiCheckCircle,
+  FiXCircle,
 } from "react-icons/fi";
 import { BsApple, BsFacebook, BsGoogle } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -35,25 +38,31 @@ export default function Signup() {
     role: "user", // <-- default to normal user; backend expects "user" or "super_admin"
   });
 
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState(null);
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (isLoading) return; // Prevent multiple submissions
-    
+
     setIsLoading(true);
-    setError("");
+    setMessage(null);
 
     // simple client-side checks
     if (form.password !== form.password2) {
-      setError("Passwords do not match.");
+      setMessage({
+        type: "error",
+        text: "Passwords do not much",
+      });
       setIsLoading(false);
       return;
     }
     if ((form.password || "").length < 8) {
-      setError("Password must be at least 8 characters.");
+      setMessage({
+        type: "error",
+        text: "Passwords must be at least 8 characters",
+      });
       setIsLoading(false);
       return;
     }
@@ -72,20 +81,32 @@ export default function Signup() {
       navigate("/login");
     } catch (e) {
       // show server message if available
-      setError(e?.message || "Registration failed");
+      setMessage({
+        type: "error",
+        text: e?.message || "Registration failed",
+      });
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className={`flex items-center justify-center min-h-screen p-4 ${
-      isDark 
-        ? 'bg-gradient-to-br from-[#0A0A0A] to-[#152602]' 
-        : 'bg-gradient-to-br from-[#F4FFAB] to-[#e2e8f0]'
-    }`}>
+    <div
+      className={`flex items-center justify-center min-h-screen p-4 ${
+        isDark
+          ? "bg-gradient-to-br from-[#0A0A0A] to-[#152602]"
+          : "bg-gradient-to-br from-[#F4FFAB] to-[#e2e8f0]"
+      }`}
+    >
       <ThemeToggle />
-      <div className="w-full max-w-sm">
+      <div
+        className={`w-full max-w-md h-auto sm:rounded-3xl sm:py-8 sm:px-8 
+                 sm:backdrop-blur-lg sm:border ${
+                   isDark
+                     ? "sm:border-white/10 sm:bg-white/5"
+                     : "sm:border-black/10 sm:bg-black/5"
+                 }`}
+      >
         {/* Header */}
         <div className="text-center space-y-3 mb-8">
           <div className="flex justify-center">
@@ -95,17 +116,41 @@ export default function Signup() {
               alt="Alt Logo"
             />
           </div>
-          <h1 className={`text-4xl font-semibold ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>Sign Up</h1>
-          <p className={`text-md ${
-            isDark ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <h1
+            className={`text-4xl font-semibold ${
+              isDark ? "text-white" : "text-gray-900"
+            }`}
+          >
+            Sign Up
+          </h1>
+          <p
+            className={`text-md ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             Please create an account to use out platform
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {message && (
+            <div
+              className={`ml-2 mb-4 flex items-center gap-2 text-sm font-medium ${
+                isDark ? "text-gray-200" : "text-gray-800"
+              }`}
+            >
+              {message.type === "success" ? (
+                isDark ? (
+                  <FiCheckCircle className="text-green-400 w-5 h-5" />
+                ) : (
+                  <FiCheckCircle className="text-green-600 w-5 h-5" />
+                )
+              ) : isDark ? (
+                <FiXCircle className="text-red-400 w-5 h-5" />
+              ) : (
+                <FiXCircle className="text-red-600 w-5 h-5" />
+              )}
+              <span>{message.text}</span>
+            </div>
+          )}
           <div className="relative">
             <FiUser
               className="absolute top-[18px] left-4 text-[#539C06]"
@@ -116,9 +161,9 @@ export default function Signup() {
               type="text"
               placeholder="Full name"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.full_name}
               onChange={onChange}
@@ -137,9 +182,9 @@ export default function Signup() {
               type="tel"
               placeholder="Phone number"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.phone}
               onChange={onChange}
@@ -158,9 +203,9 @@ export default function Signup() {
               type="text"
               placeholder="Username"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.username}
               onChange={onChange}
@@ -179,9 +224,9 @@ export default function Signup() {
               type="text"
               placeholder="Email"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.email}
               onChange={onChange}
@@ -200,9 +245,9 @@ export default function Signup() {
               type={passwordVisible ? "text" : "password"}
               placeholder="Password"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.password}
               onChange={onChange}
@@ -210,18 +255,20 @@ export default function Signup() {
               minLength={8}
               disabled={isLoading}
             />
-            <div onClick={() => !isLoading && setPasswordVisible(!passwordVisible)}>
+            <div
+              onClick={() => !isLoading && setPasswordVisible(!passwordVisible)}
+            >
               {passwordVisible ? (
                 <FiEyeOff
                   className={`absolute top-[18px] right-4 cursor-pointer ${
-                    isLoading ? 'text-gray-500' : 'text-[#777777]'
+                    isLoading ? "text-gray-500" : "text-[#777777]"
                   }`}
                   size={20}
                 />
               ) : (
                 <FiEye
                   className={`absolute top-[18px] right-4 cursor-pointer ${
-                    isLoading ? 'text-gray-500' : 'text-[#777777]'
+                    isLoading ? "text-gray-500" : "text-[#777777]"
                   }`}
                   size={20}
                 />
@@ -239,9 +286,9 @@ export default function Signup() {
               type={password2Visible ? "text" : "password"}
               placeholder="Confirm Password"
               className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]' 
-                  : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm'
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-[#AAAAAA]"
+                  : "bg-white border border-gray-300 text-gray-900 placeholder-gray-500 shadow-sm"
               }`}
               value={form.password2}
               onChange={onChange}
@@ -249,18 +296,22 @@ export default function Signup() {
               required
               disabled={isLoading}
             />
-            <div onClick={() => !isLoading && setPassword2Visible(!password2Visible)}>
+            <div
+              onClick={() =>
+                !isLoading && setPassword2Visible(!password2Visible)
+              }
+            >
               {password2Visible ? (
                 <FiEyeOff
                   className={`absolute top-[18px] right-4 cursor-pointer ${
-                    isLoading ? 'text-gray-500' : 'text-[#777777]'
+                    isLoading ? "text-gray-500" : "text-[#777777]"
                   }`}
                   size={20}
                 />
               ) : (
                 <FiEye
                   className={`absolute top-[18px] right-4 cursor-pointer ${
-                    isLoading ? 'text-gray-500' : 'text-[#777777]'
+                    isLoading ? "text-gray-500" : "text-[#777777]"
                   }`}
                   size={20}
                 />
@@ -275,59 +326,35 @@ export default function Signup() {
             />
             <select
               name="role"
-              className={`w-full rounded-full pl-12 pr-4 py-4 focus:ring-1 focus:ring-[#539C06] focus:outline-none appearance-none ${
-                isDark 
-                  ? 'bg-white/10 border border-[#484848] text-white' 
-                  : 'bg-white border border-gray-300 text-gray-900 shadow-sm'
+              className={`w-full rounded-full pl-12 pr-14 py-4 focus:outline-none appearance-none ${
+                isDark
+                  ? "bg-white/10 border border-[#484848] text-white placeholder-gray-400"
+                  : "bg-white border border-gray-300 text-gray-900 shadow-sm"
               }`}
               value={form.role}
               onChange={onChange}
               disabled={isLoading}
             >
-              <option
-                className={`${
-                  isDark 
-                    ? 'text-[#539c06] bg-white/10' 
-                    : 'text-[#539c06] bg-white'
-                } rounded-full px-4 w-full`}
-                value=""
-                disabled
-              >
+              <option value="" disabled>
                 Select Role
               </option>
-              <option
-                className={`${
-                  isDark 
-                    ? 'text-[#539c06] bg-white/10' 
-                    : 'text-[#539c06] bg-white'
-                } rounded-full px-4 w-full`}
-                value="user"
-              >
-                Normal User
-              </option>
-              <option
-                className={`${
-                  isDark 
-                    ? 'text-[#539c06] bg-white/10' 
-                    : 'text-[#539c06] bg-white'
-                } rounded-full px-4 w-full`}
-                value="super_admin"
-              >
-                Super Admin
-              </option>
+              <option value="user">Normal User</option>
+              <option value="super_admin">Super Admin</option>
             </select>
+            <ChevronDown
+              className={`absolute top-[18px] right-4 ${
+                isDark ? "text-white" : "text-[#539C06]"
+              }`}
+              size={20}
+            />
           </div>
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
 
           {/* Sign Up button with loading state */}
           <button
             type="submit"
             disabled={isLoading}
             className={`w-full py-4 px-4 rounded-full font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-              isLoading 
-                ? 'opacity-70 cursor-not-allowed' 
-                : 'hover:opacity-90'
+              isLoading ? "opacity-70 cursor-not-allowed" : "hover:opacity-90"
             } bg-gradient-to-r from-[#539C06] to-[#D7EB57] text-black`}
           >
             {isLoading ? (
@@ -336,72 +363,87 @@ export default function Signup() {
                 Creating Account...
               </>
             ) : (
-              'Sign Up'
+              "Sign Up"
             )}
           </button>
         </form>
 
         {/* OR */}
         <div className="flex items-center gap-3 py-4">
-          <div className={`flex-grow h-px ${
-            isDark 
-              ? 'bg-gradient-to-r from-[#152305] to-[#549D07]' 
-              : 'bg-gradient-to-r from-gray-300 to-gray-400'
-          }`} />
-          <span className={`text-sm ${
-            isDark ? 'text-[#38531D]' : 'text-gray-500'
-          }`}>OR</span>
-          <div className={`flex-grow h-px ${
-            isDark 
-              ? 'bg-gradient-to-l from-[#152305] to-[#549D07]' 
-              : 'bg-gradient-to-l from-gray-300 to-gray-400'
-          }`} />
+          <div
+            className={`flex-grow h-px ${
+              isDark
+                ? "bg-gradient-to-r from-[#152305] to-[#549D07]"
+                : "bg-gradient-to-r from-gray-300 to-gray-400"
+            }`}
+          />
+          <span
+            className={`text-sm ${isDark ? "text-[#38531D]" : "text-gray-500"}`}
+          >
+            OR
+          </span>
+          <div
+            className={`flex-grow h-px ${
+              isDark
+                ? "bg-gradient-to-l from-[#152305] to-[#549D07]"
+                : "bg-gradient-to-l from-gray-300 to-gray-400"
+            }`}
+          />
         </div>
 
         {/* Social Buttons */}
         <div className="flex justify-center gap-6">
-          <button 
+          <button
             className={`rounded-full p-4 border transition ${
-              isDark 
-                ? 'border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]' 
-                : 'border-gray-300 bg-white hover:bg-gray-50 shadow-sm'
+              isDark
+                ? "border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]"
+                : "border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
             }`}
             disabled={isLoading}
           >
-            <BsFacebook size={22} className={isDark ? 'text-white' : 'text-gray-700'} />
+            <BsFacebook
+              size={22}
+              className={isDark ? "text-white" : "text-gray-700"}
+            />
           </button>
-          <button 
+          <button
             className={`rounded-full p-4 border transition ${
-              isDark 
-                ? 'border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]' 
-                : 'border-gray-300 bg-white hover:bg-gray-50 shadow-sm'
+              isDark
+                ? "border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]"
+                : "border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
             }`}
             disabled={isLoading}
           >
-            <BsGoogle size={22} className={isDark ? 'text-white' : 'text-gray-700'} />
+            <BsGoogle
+              size={22}
+              className={isDark ? "text-white" : "text-gray-700"}
+            />
           </button>
-          <button 
+          <button
             className={`rounded-full p-4 border transition ${
-              isDark 
-                ? 'border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]' 
-                : 'border-gray-300 bg-white hover:bg-gray-50 shadow-sm'
+              isDark
+                ? "border-[#5AA00B] bg-gradient-to-r from-[#213A04] to-[#182b03]"
+                : "border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
             }`}
             disabled={isLoading}
           >
-            <BsApple size={22} className={isDark ? 'text-white' : 'text-gray-700'} />
+            <BsApple
+              size={22}
+              className={isDark ? "text-white" : "text-gray-700"}
+            />
           </button>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm">
-          <p className={isDark ? 'text-[#989E92]' : 'text-gray-600'}>Already have an account?</p>
-          <Link 
-            to="/login" 
+          <p className={isDark ? "text-[#989E92]" : "text-gray-600"}>
+            Already have an account?
+          </p>
+          <Link
+            to="/login"
             className={`hover:underline ${
-              isLoading ? 'pointer-events-none opacity-50' : ''
-            } ${
-              isDark ? 'text-[#ACED2E]' : 'text-[#539C06]'
-            }`}
+              isLoading ? "pointer-events-none opacity-50" : ""
+            } ${isDark ? "text-[#ACED2E]" : "text-[#539C06]"}`}
           >
             Sign In
           </Link>
