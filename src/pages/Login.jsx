@@ -35,7 +35,7 @@ export default function Login() {
 
     try {
       const role = await login(form);
-      if (role === "super_admin") navigate("/dashboard");
+      if (role === "super_admin") navigate("/");
       else navigate("/app");
     } catch (err) {
       setMessage({

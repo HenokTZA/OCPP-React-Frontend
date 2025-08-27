@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
 import AppWrapper from "@/components/AppWrapper";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -12,18 +11,14 @@ import DiagnoseList from "@/pages/DiagnoseList.jsx";
 import DiagnoseDetail from "@/pages/DiagnoseDetail.jsx";
 import NormalUserApp from "./user/NormalUserApp";
 import { Protected, RequireRole } from "@/lib/roles";
+
 // import AdminApp from "@/admin/AdminApp";
 import AdminApp from "@/pages/Dashboard";
 import WelcomeScreen from "./pages/WelcomeScreen";
 
-function ProtectedRoute({ children }) {
-  const { isAuth } = useAuth();
-  return isAuth ? children : <Navigate to="/login" />;
-}
+
 
 function AuthRedirect() {
-  const { isAuth } = useAuth();
-
   return <WelcomeScreen />;
 }
 
@@ -31,14 +26,15 @@ export default function App() {
   return (
     <AppWrapper>
       <Routes>
-        {/* Initial route - redirects to splash */}
-        {/* <Route path="/" element={<Navigate to="/splash" replace />} /> */}
+        {/* Admin dashboard */}
         <Route
           path="/"
           element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/app">
+                <Dashboard />
+              </RequireRole>
+            </Protected>
           }
         />
 
@@ -56,33 +52,41 @@ export default function App() {
         <Route
           path="/cp/:id"
           element={
-            <ProtectedRoute>
-              <CpDetail />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/">
+                <CpDetail />
+              </RequireRole>
+            </Protected>
           }
         />
         <Route
           path="/diagnose"
           element={
-            <ProtectedRoute>
-              <DiagnoseList />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/">
+                <DiagnoseList />
+              </RequireRole>
+            </Protected>
           }
         />
         <Route
           path="/diagnose/:id"
           element={
-            <ProtectedRoute>
-              <DiagnoseDetail />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/">
+                <DiagnoseDetail />
+              </RequireRole>
+            </Protected>
           }
         />
         <Route
           path="/reports"
           element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/">
+                <Reports />
+              </RequireRole>
+            </Protected>
           }
         />
 
@@ -90,9 +94,11 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/app">
+                <Dashboard />
+              </RequireRole>
+            </Protected>
           }
         />
 

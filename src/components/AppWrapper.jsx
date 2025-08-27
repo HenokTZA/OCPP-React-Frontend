@@ -25,7 +25,9 @@ export default function AppWrapper({ children }) {
       // If user is authenticated, redirect to appropriate app route
       if (isAuth) {
         // Check if user is already on an app route
-        if (location.pathname.startsWith('/app') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard')) {
+        if (location.pathname.startsWith('/app') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard') || 
+            location.pathname.startsWith('/reports') || location.pathname.startsWith('/diagnose') || location.pathname.startsWith('/cp/') ||
+            location.pathname === '/') {
           return;
         }
         if (user.role === "user") {
