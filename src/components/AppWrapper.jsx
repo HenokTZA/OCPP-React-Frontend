@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth';
 import SplashScreen from '@/pages/SplashScreen';
 
 export default function AppWrapper({ children }) {
-  const { isAuth, loading } = useAuth();
+  const { isAuth, loading, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showSplash, setShowSplash] = useState(true);
@@ -28,9 +28,14 @@ export default function AppWrapper({ children }) {
         if (location.pathname.startsWith('/app') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard')) {
           return;
         }
+        if (user.role === "user") {
+          navigate('/app');
+        } else if (user.role === "super_admin") {
+          navigate('/');
+        } else {
+          navigate('/home');
+        }
         
-        // Redirect authenticated users to their appropriate app route
-        navigate('/app');
       } else {
         // If not authenticated and not on auth pages, redirect to welcome
         const authPages = ['/login', '/signup', '/forgot-password', '/create-password', '/reset-password'];
