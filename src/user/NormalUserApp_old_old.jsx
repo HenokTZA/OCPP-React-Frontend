@@ -1,5 +1,4 @@
-import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
+import { NavLink, Routes, Route, Navigate } from "react-router-dom";
 import MapPage from "./pages/MapPage";
 import NearbyPage from "./pages/NearbyPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -7,52 +6,24 @@ import TimelinePage from "./pages/TimelinePage";
 import CPDetailPage from "./pages/CPDetailPage";
 
 export default function NormalUserApp() {
-  const navigate = useNavigate();
-  const { logout, user } = useAuth();
-
-  async function handleLogout() {
-    try {
-      await logout?.();
-    } finally {
-      navigate("/login", { replace: true });
-    }
-  }
-
   return (
     <div className="flex h-screen">
-      <aside className="w-56 bg-base-200 border-r flex flex-col">
+      <aside className="w-56 bg-base-200 border-r">
         <div className="p-4 text-xl font-semibold">EV</div>
-
         <nav className="flex flex-col gap-1 px-2">
           <NavLink to="map"      className="btn btn-ghost justify-start">Map</NavLink>
           <NavLink to="nearby"   className="btn btn-ghost justify-start">Nearby</NavLink>
           <NavLink to="profile"  className="btn btn-ghost justify-start">Profile</NavLink>
           <NavLink to="timeline" className="btn btn-ghost justify-start">Timeline</NavLink>
         </nav>
-
-        {/* Push logout to the bottom */}
-        <div className="mt-auto p-2 border-t">
-          {user?.username && (
-            <div className="px-2 pb-2 text-xs opacity-70 truncate">
-              Signed in as <b>{user.username}</b>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="btn btn-ghost w-full justify-start text-red-600"
-          >
-            Logout
-          </button>
-        </div>
       </aside>
 
       <main className="flex-1">
         <Routes>
           <Route index element={<Navigate to="map" />} />
           <Route path="map" element={<MapPage />} />
-          <Route path="map/:cpId" element={<CPDetailPage />} />
-          <Route path="map/by-code/:code" element={<CPDetailPage byCode />} />
+          <Route path="map/:cpId" element={<CPDetailPage />} />   {/* ← detail page */}
+          <Route path="map/by-code/:code" element={<CPDetailPage byCode />} /> {/* ← add */}
           <Route path="nearby" element={<NearbyPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="timeline" element={<TimelinePage />} />
