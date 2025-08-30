@@ -1,3 +1,4 @@
+// src/components/AppWrapper.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
@@ -5,63 +6,49 @@ import SplashScreen from '@/pages/SplashScreen';
 
 export default function AppWrapper({ children }) {
   const { isAuth, loading, user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate   = useNavigate();
+  const location   = useLocation();
   const [showSplash, setShowSplash] = useState(true);
   const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
-    const splashTimer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500);
-
-    return () => clearTimeout(splashTimer);
+    const t = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(t);
   }, []);
 
-  // Handle routing after splash and auth loading
   useEffect(() => {
-    if (!showSplash && !loading && splashComplete) {
-      
-      // If user is authenticated, redirect to appropriate app route
-      if (isAuth) {
-        // Check if user is already on an app route
-        if (location.pathname.startsWith('/app') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard') || 
-            location.pathname.startsWith('/reports') || location.pathname.startsWith('/diagnose') || location.pathname.startsWith('/cp/') ||
-            location.pathname === '/') {
-          return;
-        }
-        if (user.role === "user") {
-          navigate('/app');
-        } else if (user.role === "super_admin") {
-          navigate('/');
-        } else {
-          navigate('/home');
-        }
-        
-      } else {
-        // If not authenticated and not on auth pages, redirect to welcome
-        const authPages = ['/login', '/signup', '/forgot-password', '/create-password', '/reset-password'];
-        const isOnAuthPage = authPages.some(page => location.pathname.startsWith(page));
-        
-        if (!isOnAuthPage && location.pathname !== '/home' && location.pathname !== '/splash') {
-          navigate('/home');
-        }
-      }
-    }
-  }, [showSplash, loading, isAuth, splashComplete, navigate, location.pathname]);
-
-  // Mark splash as complete when auth loading is done
-  useEffect(() => {
-    if (!loading) {
-      setSplashComplete(true);
-    }
+    if (!loading) setSplashComplete(true);
   }, [loading]);
 
-  // Show splash screen while loading or during initial splash
-  if (showSplash || loading) {
-    return <SplashScreen />;
-  }
+  useEffect(() => {
+    if (showSplash || loading || !splashComplete) return;
 
-  // Render the main app content
+    const allowedAuthRoots = [
+      '/', '/app', '/admin', '/dashboard', '/reports',
+      '/diagnose', '/cp/', '/manage', '/history' // 👈 add /manage here
+    ];
+    const isOnAllowedAuthPath = allowedAuthRoots.some(p =>
+      location.pathname === p || location.pathname.startsWith(p)
+    );
+
+    if (isAuth) {
+      // stay put on any allowed/authenticated route
+      if (isOnAllowedAuthPath) return;
+
+      // otherwise, role-based landing
+      if (user?.role === 'user')        navigate('/app', { replace: true });
+      else if (user?.role === 'super_admin') navigate('/', { replace: true });
+      else                               navigate('/home', { replace: true });
+    } else {
+      const authPages = ['/login', '/signup', '/forgot-password', '/create-password', '/reset-password'];
+      const isOnAuthPage = authPages.some(page => location.pathname.startsWith(page));
+      if (!isOnAuthPage && location.pathname !== '/home' && location.pathname !== '/splash') {
+        navigate('/home', { replace: true });
+      }
+    }
+  }, [showSplash, loading, splashComplete, isAuth, user?.role, location.pathname, navigate]);
+
+  if (showSplash || loading) return <SplashScreen />;
   return children;
 }
+

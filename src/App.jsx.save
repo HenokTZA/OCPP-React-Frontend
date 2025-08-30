@@ -12,8 +12,6 @@ import DiagnoseDetail from "@/pages/DiagnoseDetail.jsx";
 import NormalUserApp from "./user/NormalUserApp";
 import { Protected, RequireRole } from "@/lib/roles";
 import Manage from "@/pages/Manage";
-import SessionsHistory from "./pages/SessionsHistory";
-
 
 // import AdminApp from "@/admin/AdminApp";
 import AdminApp from "@/pages/Dashboard";
@@ -130,16 +128,7 @@ export default function App() {
   }
 />
 
-<Route
-  path="/history"
-  element={
-    <Protected>
-      <RequireRole allow={["super_admin"]} redirect="/app">
-        <SessionsHistory />
-      </RequireRole>
-    </Protected>
-  }
-/>
+
 
         {/* Normal user area */}
         <Route

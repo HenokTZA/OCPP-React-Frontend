@@ -33,7 +33,7 @@ function patchCP(pk, body) {
 }
 
 
-/*
+
 // --- Revenue helpers ---
 function money(n) {
   const x = Number(n || 0);
@@ -58,7 +58,7 @@ function sessionRevenue(s, cps) {
   }
   return byEnergy;
 }
-*/
+
 
 
 
@@ -89,10 +89,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);   // NEW
-  const [revenue, setRevenue] = useState(null);
-
-// helper
-const money = (n) => `${Number(n || 0).toFixed(2)} €`;
 
   useEffect(() => {
     fetchJson("/me/").then(setMe).catch(() => logout());
@@ -103,12 +99,11 @@ const money = (n) => `${Number(n || 0).toFixed(2)} €`;
     if (!me?.tenant_ws) return;
 
     const load = () =>
-      Promise.all([fetchJson("/charge-points/"), fetchJson("/sessions/?limit=10"), fetchJson("/admin/charge-points/stats/"), fetchJson("/sessions/revenue/")]).then(
-        ([c, s, st, r]) => {
+      Promise.all([fetchJson("/charge-points/"), fetchJson("/sessions/?limit=10"), fetchJson("/admin/charge-points/stats/")]).then(
+        ([c, s, st]) => {
           setCps(c);
           setSes(s);
           setStats(st);
-          setRevenue(r);
         }
       );
 
@@ -156,12 +151,19 @@ const money = (n) => `${Number(n || 0).toFixed(2)} €`;
   if (!me.tenant_ws) return <p className="p-8">You don’t own a tenant yet.</p>;
   if (!cps || !sessions) return <p className="p-8">Loading charge-points…</p>;
 
-  // —— Revenue totals from backend ——
-const lifetimeRevenue = revenue?.lifetime ?? 0;
-const monthRevenue    = revenue?.month ?? 0;
-const monthLabel      = revenue?.month_label ??
-  new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  // —— Revenue totals ——
+const lifetimeRevenue = sessions.reduce((sum, s) => sum + sessionRevenue(s, cps), 0);
 
+const now = new Date();
+const month = now.getMonth();
+const year  = now.getFullYear();
+
+const monthRevenue = sessions
+  .filter(s => {
+    const d = new Date((s.Ended || s.ended || s.Started || s.started || now));
+    return d.getMonth() === month && d.getFullYear() === year;
+  })
+  .reduce((sum, s) => sum + sessionRevenue(s, cps), 0);
 
 
 
@@ -216,13 +218,12 @@ const monthLabel      = revenue?.month_label ??
   <div className="card bg-base-200">
     <div className="card-body">
       <div className="text-xs opacity-70">
-        Revenue this month ({monthLabel})
+        Revenue this month ({now.toLocaleString(undefined, { month: 'long', year: 'numeric' })})
       </div>
       <div className="text-3xl font-semibold">{money(monthRevenue)}</div>
     </div>
   </div>
 </div>
-
 
 
 
