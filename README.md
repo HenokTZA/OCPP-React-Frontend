@@ -208,6 +208,19 @@ curl -i "%BASE%/api/charge-points/BURA/user-prices/" ^
 {"id":2,"user":29,"user_email":"henoka@gmail.com","user_name":"Henok","price_per_kwh":"0.270","price_per_hour":"1.20"}
 ```
 
+### 13) List specific prices assigned to specific users
+
+```bat
+curl -i "%BASE%/api/charge-points/BURA/user-prices/" ^
+  -H "Authorization: Bearer %ACCESS%" ^
+  -H "Accept: application/json"
+```
+
+**Success (example):**
+```json
+[{"id":2,"user":29,"user_email":"henoka@gmail.com","user_name":"Henok","price_per_kwh":"0.270","price_per_hour":"1.20"}]
+```
+
 ---
 
 ## Endpoint Reference
