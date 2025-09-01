@@ -200,7 +200,7 @@ curl -i "%BASE%/api/charge-points/BURA/user-prices/" ^
 
 **Success (example):**
 ```json
-{"by_status":{"Preparing":1,"Unavailable":3},"totals":{"available":0,"unavailable":3,"charging":0,"occupied":0,"preparing":1,"other":0}}
+{"id":2,"user":29,"user_email":"henoka@gmail.com","user_name":"Henok","price_per_kwh":"0.270","price_per_hour":"1.20"}
 ```
 
 **Success (example):**
