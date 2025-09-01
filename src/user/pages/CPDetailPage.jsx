@@ -3,6 +3,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { fetchJson } from "@/lib/api";
 
+
+const PLUG_LABELS = {
+  type2: "Type 2",
+  eu: "EU Schuko",
+  uk: "UK",
+  swiss: "Swiss",
+  ccs2: "CCS2",
+  chademo: "CHAdeMO",
+};
+
+const ACCESS_LABELS = {
+  public: "Public",
+  limited: "Limited",
+  private: "Private",
+};
+
+
+
 export default function CPDetailPage({ byCode = false }) {
   const { cpId, code } = useParams();
   const [search] = useSearchParams();
@@ -135,6 +153,7 @@ export default function CPDetailPage({ byCode = false }) {
             </div>
           </div>
         </div>
+/*
         <div className="card bg-base-200">
           <div className="card-body">
             <div>
@@ -143,13 +162,40 @@ export default function CPDetailPage({ byCode = false }) {
             <div>
               <b>Price (time):</b> {cp.price_per_hour ?? "—"} €/h
             </div>
+            <div><b>Plug type:</b> {cp.plug_type_label || PLUG_LABELS[cp.plug_type] || "—"}</div>
+            <div><b>Max power:</b> {cp.max_power_kw ?? "—"} kW</div>
+            <div><b>Access:</b> {cp.access_type_label || ACCESS_LABELS[cp.access_type] || "—"}</div>
             <div>
               <b>Updated:</b>{" "}
               {cp.updated ? new Date(cp.updated).toLocaleString() : "—"}
             </div>
           </div>
         </div>
-      </div>
+*/
+// CPDetailPage.jsx (where you print prices)
+<div className="card bg-base-200">
+  <div className="card-body">
+    <div>
+      <b>Price (energy):</b>{" "}
+      {(cp.effective_price_per_kwh ?? cp.price_per_kwh) ?? "—"} €/kWh
+      {cp.effective_price_per_kwh != null && cp.effective_price_per_kwh !== cp.price_per_kwh && (
+        <span className="ml-2 text-xs opacity-70">(default: {cp.price_per_kwh ?? "—"})</span>
+      )}
+    </div>
+    <div>
+      <b>Price (time):</b>{" "}
+      {(cp.effective_price_per_hour ?? cp.price_per_hour) ?? "—"} €/h
+      {cp.effective_price_per_hour != null && cp.effective_price_per_hour !== cp.price_per_hour && (
+        <span className="ml-2 text-xs opacity-70">(default: {cp.price_per_hour ?? "—"})</span>
+      )}
+    </div>
+    <div>
+      <b>Updated:</b> {cp.updated ? new Date(cp.updated).toLocaleString() : "—"}
+    </div>
+  </div>
+</div>
+   
+   </div>
 
       {/* Session info + controls */}
       <div className="card bg-base-200">

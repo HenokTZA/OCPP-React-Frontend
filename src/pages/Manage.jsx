@@ -38,6 +38,38 @@ export default function Manage() {
   const [tmpLat, setTmpLat] = useState(null);
   const [tmpLng, setTmpLng] = useState(null);
 
+  const [usersCP, setUsersCP] = useState(null);   // cp.id that is being managed
+const [userRows, setUserRows] = useState([]);   // [{id, user_email, price_per_kwh, price_per_hour, editing}]
+const [addEmail, setAddEmail] = useState("");
+const [addK, setAddK] = useState("");
+const [addH, setAddH] = useState("");
+
+
+
+  // Options
+const PLUG_OPTIONS = [
+  { value: "type2",   label: "Type 2" },
+  { value: "eu",      label: "EU Schuko" },
+  { value: "uk",      label: "UK" },
+  { value: "swiss",   label: "Swiss" },
+  { value: "ccs2",    label: "CCS2" },
+  { value: "chademo", label: "CHAdeMO" },
+];
+
+const ACCESS_OPTIONS = [
+  { value: "public",  label: "Public" },
+  { value: "limited", label: "Limited" },
+  { value: "private", label: "Private" },
+];
+
+// NEW temp fields
+const [tmpPlug,   setTmpPlug]   = useState("");
+const [tmpPower,  setTmpPower]  = useState("");   // kW
+const [tmpAccess, setTmpAccess] = useState("");
+
+
+
+
   useEffect(() => {
     fetchJson("/me")
       .then(setMe)
@@ -54,12 +86,72 @@ export default function Manage() {
     return () => clearInterval(t);
   }, []);
 
+/*
   async function updatePrices(id) {
     const pk = Number(tmpK) || 0;
     const ph = Number(tmpH) || 0;
     await patchCP(id, { price_per_kwh: pk, price_per_hour: ph });
     setCps((arr) => arr.map((c) => (c.id === id ? { ...c, price_per_kwh: pk, price_per_hour: ph } : c)));
   }
+*/
+
+
+async function updatePrices(id) {
+  const pk = Number(tmpK) || 0;
+  const ph = Number(tmpH) || 0;
+
+  const body = {
+    price_per_kwh:  pk,
+    price_per_hour: ph,
+    plug_type:      tmpPlug || null,                          // "type2", "eu", ...
+    max_power_kw:   tmpPower === "" ? null : Number(tmpPower),// number (kW)
+    access_type:    tmpAccess || null,                        // "public" | "limited" | "private"
+  };
+
+  await patchCP(id, body);
+
+  setCps(arr =>
+    arr.map(c =>
+      (c.id === id || c.pk === id) ? { ...c, ...body } : c
+    )
+  );
+}
+
+
+async function loadUserPrices(cpId) {
+  const rows = await fetchJson(`/charge-points/${cpId}/user-prices/`);
+  setUserRows((rows || []).map(r => ({ ...r, editing: false })));
+}
+
+async function addUserPrice(cpId) {
+  const body = {
+    email: addEmail.trim(),
+    price_per_kwh:  addK === "" ? null : Number(addK),
+    price_per_hour: addH === "" ? null : Number(addH),
+  };
+  const row = await fetchJson(`/charge-points/${cpId}/user-prices/`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  setUserRows(arr => [...arr, { ...row, editing: false }]);
+  setAddEmail(""); setAddK(""); setAddH("");
+}
+
+async function patchUserPrice(cpId, upid, patch) {
+  const row = await fetchJson(`/charge-points/${cpId}/user-prices/${upid}/`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  setUserRows(arr => arr.map(x => x.id === upid ? { ...row, editing: false } : x));
+}
+
+async function deleteUserPrice(cpId, upid) {
+  await fetchJson(`/charge-points/${cpId}/user-prices/${upid}/`, { method: "DELETE" });
+  setUserRows(arr => arr.filter(x => x.id !== upid));
+}
+
+
+
 
   async function updateLocation(id) {
     const location = tmpL.trim();
@@ -155,6 +247,9 @@ export default function Manage() {
                             cb={() => {
                               setTmpK(cp.price_per_kwh ?? "");
                               setTmpH(cp.price_per_hour ?? "");
+                              setTmpPlug(cp.plug_type ?? "");
+                              setTmpPower(cp.max_power_kw ?? "");
+                              setTmpAccess(cp.access_type ?? "");
                               setEdit(cp.id);
                               setMenu(null);
                             }}
@@ -169,7 +264,20 @@ export default function Manage() {
                               setMenu(null);
                             }}
                           />
-                          <Li label="👥 Define users" disabled />
+                          <Li
+  label="👥 Define users"
+  cb={async () => {
+    const cpKey = cp.pk ?? cp.id;    // "BURA"
+    await loadUserPrices(cpKey);
+    setUsersCP(cpKey);
+    setMenu(null);
+  }}
+/>
+
+
+
+
+
                           <Li label="🗓️  Define times" disabled />
                         </ul>
                       )}
@@ -183,7 +291,8 @@ export default function Manage() {
       </section>
 
       {/* Price modal */}
-      {editCP &&
+/*     {editCP &&
+
         createPortal(
           <Modal onClose={() => setEdit(null)}>
             <h2 className="text-xl font-semibold mb-4">Edit connector</h2>
@@ -204,6 +313,113 @@ export default function Manage() {
           </Modal>,
           document.body
         )}
+*/
+
+{usersCP !== null && (
+  <UserPricesModal
+    cpId={usersCP}
+    rows={userRows}
+    setRows={setUserRows}
+    addEmail={addEmail}
+    setAddEmail={setAddEmail}
+    addK={addK}
+    setAddK={setAddK}
+    addH={addH}
+    setAddH={setAddH}
+    onAdd={addUserPrice}
+    onPatch={patchUserPrice}
+    onDelete={deleteUserPrice}
+    onClose={() => { setUsersCP(null); setUserRows([]); }}
+  />
+)}
+
+
+
+
+{editCP &&
+  createPortal(
+    <Modal onClose={() => setEdit(null)}>
+      <h2 className="text-xl font-semibold mb-4">Edit connector</h2>
+
+      {/* Prices */}
+      <div className="mb-6 p-4 rounded shadow border">
+        <h3 className="font-medium mb-4">Prices</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <Field
+            label="Price per kWh (€)"
+            value={tmpK}
+            onChange={(e) => setTmpK(e.target.value)}
+          />
+          <Field
+            label="Price per h  (€)"
+            value={tmpH}
+            onChange={(e) => setTmpH(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Connector & Access */}
+      <div className="mb-6 p-4 rounded shadow border">
+        <h3 className="font-medium mb-4">Connector &amp; Access</h3>
+        <div className="grid grid-cols-2 gap-6">
+          {/* Plug type */}
+          <label className="block">
+            <span className="text-sm text-slate-600">Plug type</span>
+            <select
+              className="mt-1 w-full border-b outline-none focus:border-blue-500 py-1 bg-white"
+              value={tmpPlug}
+              onChange={(e) => setTmpPlug(e.target.value)}
+            >
+              <option value="">— Select —</option>
+              {PLUG_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* Max power (kW) */}
+          <Field
+            label="Max power (kW)"
+            value={tmpPower}
+            onChange={(e) => setTmpPower(e.target.value)}
+            type="number"
+            step="0.1"
+            min="0"
+            placeholder="e.g. 22"
+          />
+
+          {/* Access type */}
+          <label className="block">
+            <span className="text-sm text-slate-600">Access type</span>
+            <select
+              className="mt-1 w-full border-b outline-none focus:border-blue-500 py-1 bg-white"
+              value={tmpAccess}
+              onChange={(e) => setTmpAccess(e.target.value)}
+            >
+              <option value="">— Select —</option>
+              {ACCESS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-xs text-slate-500 mt-3">
+          These settings are saved on the charge point record.
+        </p>
+      </div>
+
+      <ModalButtons
+        onCancel={() => setEdit(null)}
+        onSave={async () => {
+          await updatePrices(editCP);
+          setEdit(null);
+        }}
+      />
+    </Modal>,
+    document.body
+  )
+}
+
 
       {/* Location modal */}
       {locCP &&
@@ -226,6 +442,12 @@ export default function Manage() {
     </div>
   );
 }
+
+
+          
+            
+
+
 
 /* small presentational helpers */
 const Li = ({ label, cb, disabled }) => (
@@ -394,4 +616,157 @@ const ModalButtons = ({ onCancel, onSave }) => (
     </button>
   </div>
 );
+
+function UserPricesModal({
+  cpId,
+  rows, setRows,
+  addEmail, setAddEmail,
+  addK, setAddK,
+  addH, setAddH,
+  onAdd, onPatch, onDelete,
+  onClose,
+}) {
+  return createPortal(
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">User management</h2>
+
+        <div className="flex items-end gap-2">
+          <div>
+            <div className="text-xs opacity-70 mb-1">e-mail</div>
+            <input
+              className="input input-bordered"
+              value={addEmail}
+              onChange={e => setAddEmail(e.target.value)}
+              placeholder="user@email.com"
+            />
+          </div>
+          <div>
+            <div className="text-xs opacity-70 mb-1">Price per kWh</div>
+            <input
+              className="input input-bordered w-28"
+              value={addK}
+              onChange={e => setAddK(e.target.value)}
+              placeholder="e.g. 0.35"
+            />
+          </div>
+          <div>
+            <div className="text-xs opacity-70 mb-1">Price per h</div>
+            <input
+              className="input input-bordered w-28"
+              value={addH}
+              onChange={e => setAddH(e.target.value)}
+              placeholder="e.g. 1.20"
+            />
+          </div>
+          <button
+            className="btn btn-primary"
+            disabled={!addEmail.trim()}
+            onClick={() => onAdd(cpId)}
+          >
+            + Add user
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left border-b">
+            <tr>
+              <th>e-mail</th>
+              <th>Price per kWh</th>
+              <th>Price per h</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.id} className="border-b last:border-0">
+                <td>{row.user_email}</td>
+                <td>
+                  {row.editing ? (
+                    <input
+                      className="input input-bordered w-28"
+                      defaultValue={row.price_per_kwh ?? ""}
+                      onChange={e => row._k = e.target.value}
+                    />
+                  ) : (
+                    <span>{Number(row.price_per_kwh ?? 0).toFixed(3)} CHF</span>
+                  )}
+                </td>
+                <td>
+                  {row.editing ? (
+                    <input
+                      className="input input-bordered w-28"
+                      defaultValue={row.price_per_hour ?? ""}
+                      onChange={e => row._h = e.target.value}
+                    />
+                  ) : (
+                    <span>{Number(row.price_per_hour ?? 0).toFixed(2)} CHF</span>
+                  )}
+                </td>
+                <td className="text-right">
+                  {!row.editing ? (
+                    <>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() =>
+                          setRows(arr => arr.map(x =>
+                            x.id === row.id ? { ...x, editing: true } : x
+                          ))
+                        }
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => onDelete(cpId, row.id)}
+                      >
+                        🗑️
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() =>
+                          setRows(arr => arr.map(x =>
+                            x.id === row.id ? { ...x, editing: false } : x
+                          ))
+                        }
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          const patch = {
+                            price_per_kwh:  row._k === undefined || row._k === "" ? null : Number(row._k),
+                            price_per_hour: row._h === undefined || row._h === "" ? null : Number(row._h),
+                          };
+                          onPatch(cpId, row.id, patch);
+                        }}
+                      >
+                        Save
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <button className="btn" onClick={onClose}>Close</button>
+      </div>
+    </Modal>,
+    document.body
+  );
+}
+
+  
+              
+             
 
