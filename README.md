@@ -45,7 +45,7 @@ curl -s -X POST "%BASE%/api/auth/signup/" ^
 ```bat
 curl -s -X POST "%BASE%/api/auth/login/" ^
   -H "Content-Type: application/json" ^
-  -d "{"username":"henokaa","password":"MyP@ssw0rd"}"
+  -d "{\"username\":\"bura\",\"password\":\"Abcd@1234\"}"
 ```
 
 **Success (example):**
