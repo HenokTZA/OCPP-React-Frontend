@@ -189,6 +189,11 @@ curl -s "%BASE%/api/sessions/?limit=10" ^
   -H "Authorization: Bearer %ACCESS%"
 ```
 
+**Success (example):**
+```json
+[{"id":75,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:09:53Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.262},{"id":74,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:08:40Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.505},{"id":73,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:06:46Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.885},{"id":72,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:06:01Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":698.035},{"id":69,"cp":"FIRST","user":"Henok","kWh":0.132,"Started":"2025-08-19T21:34:55Z","Ended":"2025-08-19T21:35:23Z","price_kwh":"15.000","price_hour":"12.000","total":2.073},{"id":68,"cp":"FIRST","user":"Henok","kWh":0.18,"Started":"2025-08-19T21:33:48Z","Ended":"2025-08-19T21:34:26Z","price_kwh":"15.000","price_hour":"12.000","total":2.827},{"id":67,"cp":"FIRST","user":"Henok","kWh":0.042,"Started":"2025-08-19T21:32:53Z","Ended":"2025-08-19T21:33:04Z","price_kwh":"15.000","price_hour":"12.000","total":0.667},{"id":66,"cp":"FIRST","user":"Henok","kWh":0.0,"Started":"2025-08-19T21:32:03Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":3152.828},{"id":65,"cp":"FIRST","user":"Henok","kWh":0.03,"Started":"2025-08-19T21:31:03Z","Ended":"2025-08-19T21:31:11Z","price_kwh":"15.000","price_hour":"12.000","total":0.477},{"id":64,"cp":"FIRST","user":"Henok","kWh":0.0,"Started":"2025-08-19T21:14:24Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":3156.358}]
+```
+
 ### 12) Assign Specific Price for Specific user
 
 ```bat
@@ -201,11 +206,6 @@ curl -i "%BASE%/api/charge-points/BURA/user-prices/" ^
 **Success (example):**
 ```json
 {"id":2,"user":29,"user_email":"henoka@gmail.com","user_name":"Henok","price_per_kwh":"0.270","price_per_hour":"1.20"}
-```
-
-**Success (example):**
-```json
-[{"id":75,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:09:53Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.262},{"id":74,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:08:40Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.505},{"id":73,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:06:46Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":697.885},{"id":72,"cp":"FIRST","user":"","kWh":0.0,"Started":"2025-08-28T10:06:01Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":698.035},{"id":69,"cp":"FIRST","user":"Henok","kWh":0.132,"Started":"2025-08-19T21:34:55Z","Ended":"2025-08-19T21:35:23Z","price_kwh":"15.000","price_hour":"12.000","total":2.073},{"id":68,"cp":"FIRST","user":"Henok","kWh":0.18,"Started":"2025-08-19T21:33:48Z","Ended":"2025-08-19T21:34:26Z","price_kwh":"15.000","price_hour":"12.000","total":2.827},{"id":67,"cp":"FIRST","user":"Henok","kWh":0.042,"Started":"2025-08-19T21:32:53Z","Ended":"2025-08-19T21:33:04Z","price_kwh":"15.000","price_hour":"12.000","total":0.667},{"id":66,"cp":"FIRST","user":"Henok","kWh":0.0,"Started":"2025-08-19T21:32:03Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":3152.828},{"id":65,"cp":"FIRST","user":"Henok","kWh":0.03,"Started":"2025-08-19T21:31:03Z","Ended":"2025-08-19T21:31:11Z","price_kwh":"15.000","price_hour":"12.000","total":0.477},{"id":64,"cp":"FIRST","user":"Henok","kWh":0.0,"Started":"2025-08-19T21:14:24Z","Ended":null,"price_kwh":"15.000","price_hour":"12.000","total":3156.358}]
 ```
 
 ---
