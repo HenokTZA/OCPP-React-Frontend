@@ -238,8 +238,8 @@ curl -i "%BASE%/api/charge-points/BURA/user-prices/" ^
 | `/api/sessions/revenue/`                   | GET    | Revenue summary (lifetime & current month)     | Yes         | Returns `lifetime`, `month`, `month_label` |
 | `/api/admin/charge-points/stats/`          | GET    | Charge point status stats                       | Yes         | Admin only (`super_admin`) |
 | `/api/sessions/`                           | GET    | List charging sessions / transactions          | Yes         | Query: `limit` (≤200), `offset` |
-| `/api/charge-points/BURA/user-prices/`     | GET    | Set Specific price for specific usser under specific CP    | Yes         | Send access JWT |
-| `/api/me/`                                 | GET    | Get current user profile                       | Yes         | Send access JWT |
+| `/api/charge-points/BURA/user-prices/`     | POST    | Set Specific price for specific usser under specific CP    | Yes         | Send access JWT |
+| `/api/charge-points/BURA/user-prices/`                                 | GET    | List specific prices assigned to specific users                       | Yes         | Send access JWT |
 
 \* No `Authorization` header is required for `/auth/refresh/`, but the refresh token is mandatory in the JSON body.
 
