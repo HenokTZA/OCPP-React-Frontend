@@ -101,3 +101,65 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+/* ─────────────── Dashboard API Functions ────────────────────────────────────────── */
+
+/** Fetch current user profile */
+export function fetchUserProfile() {
+  return fetchJson("/me/");
+}
+
+/** Fetch all charge points */
+export function fetchChargePoints() {
+  return fetchJson("/charge-points/");
+}
+
+/** Fetch recent sessions with limit */
+export function fetchRecentSessions(limit = 10) {
+  return fetchJson(`/sessions/?limit=${limit}`);
+}
+
+/** Fetch charge point statistics */
+export function fetchChargePointStats() {
+  return fetchJson("/admin/charge-points/stats/");
+}
+
+/** Fetch revenue data */
+export function fetchRevenue() {
+  return fetchJson("/sessions/revenue/");
+}
+
+/** Update charge point pricing */
+export function updateChargePointPricing(pk, priceKwh, priceHour) {
+  return patchJson(`/charge-points/${encodeURIComponent(pk)}/`, {
+    price_per_kwh: priceKwh,
+    price_per_hour: priceHour,
+  });
+}
+
+/** Update charge point location */
+export function updateChargePointLocation(pk, location, lat = null, lng = null) {
+  const body = { location };
+  if (lat != null && lng != null) {
+    body.lat = lat;
+    body.lng = lng;
+  }
+  return patchJson(`/charge-points/${encodeURIComponent(pk)}/`, body);
+}
+
+/** Fetch all dashboard data in parallel */
+export async function fetchDashboardData() {
+  const [chargePoints, sessions, stats, revenue] = await Promise.all([
+    fetchChargePoints(),
+    fetchRecentSessions(10),
+    fetchChargePointStats(),
+    fetchRevenue(),
+  ]);
+  
+  return {
+    chargePoints,
+    sessions,
+    stats,
+    revenue,
+  };
+}
+

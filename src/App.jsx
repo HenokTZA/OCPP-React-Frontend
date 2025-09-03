@@ -14,12 +14,11 @@ import { Protected, RequireRole } from "@/lib/roles";
 import Manage from "@/pages/Manage";
 import SessionsHistory from "./pages/SessionsHistory";
 
-
 // import AdminApp from "@/admin/AdminApp";
 import AdminApp from "@/pages/Dashboard";
 import WelcomeScreen from "./pages/WelcomeScreen";
-
-
+import ProfilePage from "./user/pages/ProfilePage";
+import Profile from "./pages/Profile";
 
 function AuthRedirect() {
   return <WelcomeScreen />;
@@ -28,7 +27,6 @@ function AuthRedirect() {
 export default function App() {
   return (
     <AppWrapper>
-
       <Routes>
         {/* Admin dashboard */}
         <Route
@@ -94,6 +92,17 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/">
+                <Profile />
+              </RequireRole>
+            </Protected>
+          }
+        />
+
         {/* Main app routes */}
         <Route
           path="/dashboard"
@@ -118,28 +127,27 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/manage"
+          element={
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/app">
+                <Manage />
+              </RequireRole>
+            </Protected>
+          }
+        />
 
-<Route
-  path="/manage"
-  element={
-    <Protected>
-      <RequireRole allow={["super_admin"]} redirect="/app">
-        <Manage />
-      </RequireRole>
-    </Protected>
-  }
-/>
-
-<Route
-  path="/history"
-  element={
-    <Protected>
-      <RequireRole allow={["super_admin"]} redirect="/app">
-        <SessionsHistory />
-      </RequireRole>
-    </Protected>
-  }
-/>
+        <Route
+          path="/history"
+          element={
+            <Protected>
+              <RequireRole allow={["super_admin"]} redirect="/app">
+                <SessionsHistory />
+              </RequireRole>
+            </Protected>
+          }
+        />
 
         {/* Normal user area */}
         <Route

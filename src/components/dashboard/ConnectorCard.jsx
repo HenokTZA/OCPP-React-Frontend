@@ -1,22 +1,35 @@
 import { CheckCircle, XCircle } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 const statusMap = {
-  Available: { color: "text-green-500", Icon: CheckCircle },
-  Charging: { color: "text-yellow-500", Icon: CheckCircle },
-  Faulted: { color: "text-red-500", Icon: XCircle }
+  Available: { color: "text-status-success", Icon: CheckCircle },
+  Charging: { color: "text-status-warning", Icon: CheckCircle },
+  Faulted: { color: "text-status-error", Icon: XCircle }
 };
 
 export default function ConnectorCard({ cp }) {
+  const { isDark } = useTheme();
   const S = statusMap[cp.status] || statusMap.Available;
+  
   return (
-    <div className="rounded-xl shadow p-4 flex justify-between bg-white">
+    <div className={`rounded-xl p-4 flex justify-between ${
+      isDark 
+        ? "bg-gradient-card-dark border border-dark-border-secondary shadow-theme-sm" 
+        : "bg-light-bg-primary border border-light-border-secondary shadow-sm"
+    }`}>
       <div>
-        <h3 className="font-medium">{cp.name}</h3>
-        <p className="text-sm text-muted">
+        <h3 className={`text-heading-xs ${
+          isDark ? "text-dark-text-primary" : "text-light-text-primary"
+        }`}>{cp.name}</h3>
+        <p className={`text-caption-md ${
+          isDark ? "text-dark-text-secondary" : "text-light-text-secondary"
+        }`}>
           Connector {cp.connectorId} · {cp.status}
         </p>
       </div>
-      <S.Icon className={`w-6 h-6 ${S.color}`} />
+      <S.Icon className={`w-6 h-6 ${
+        isDark ? `${S.color}-dark` : `${S.color}-light`
+      }`} />
     </div>
   );
 }

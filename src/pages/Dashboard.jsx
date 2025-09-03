@@ -1,101 +1,54 @@
-/**********************************************************************
- * Dashboard.jsx – prices + location stored in DB (no localStorage)   *
- *********************************************************************/
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
-import { fetchJson } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { fetchUserProfile, fetchDashboardData } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "@/lib/theme";
+import DashboardLayout from "@/components/DashboardLayout";
+import {
+  TrendingUp,
+  Zap,
+  Clock,
+  Settings,
+  Target,
+  Activity,
+  DollarSign,
+  BarChart3,
+  AlertCircle,
+} from "lucide-react";
 
-// Leaflet + Geocoder
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 import "leaflet-control-geocoder";
 import "leaflet-control-geocoder/dist/Control.Geocoder.css";
 
-// fix missing marker icons when bundling
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
-L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
+import RecentSessions from "../components/RecentSessions";
+import LoadingSpinner from "../components/LoadingSpinner";
 
-/* ─────────────── helpers ────────────────────────────────────────── */
 const fmt = (d) => (d ? new Date(d).toLocaleString() : "—");
-// pick the best available CP identifier (pk first; id as fallback)
 const cpKey = (cp) => cp?.pk ?? cp?.id;
 
-/** one-liner wrapper around fetchJson for PATCHing a CP row */
-function patchCP(pk, body) {
-  return fetchJson(`/charge-points/${encodeURIComponent(pk)}/`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-}
-
-
-/*
-// --- Revenue helpers ---
-function money(n) {
-  const x = Number(n || 0);
-  return `€${x.toFixed(2)}`;
-}
-
-function sessionRevenue(s, cps) {
-  // Find CP to read its price(s)
-  const cp = cps?.find(c => c.id === s.cp);
-  if (!cp) return 0;
-
-  const kWh = Number(s.kWh ?? s.kwh ?? 0);
-  const byEnergy = (Number(cp.price_per_kwh) || 0) * kWh;
-
-  // Optional time-based part if both Started/Ended + price_per_hour exist
-  let byTime = 0;
-  if (cp.price_per_hour && (s.Started || s.started) && (s.Ended || s.ended)) {
-    const start = new Date(s.Started || s.started);
-    const end   = new Date(s.Ended   || s.ended);
-    const hours = Math.max(0, (end - start) / 36e5);
-    byTime = hours * Number(cp.price_per_hour);
-  }
-  return byEnergy;
-}
-*/
-
-
-
-
-
-
-/* ────────────────────────────────────────────────────────────────── */
 export default function Dashboard() {
   /* server-side data */
   const [me, setMe] = useState(null);
   const [cps, setCps] = useState(null);
   const [sessions, setSes] = useState(null);
 
-  /* menu / modal UI state */
-  const [menuOpen, setMenu] = useState(null); // cp pk | null (⋮ menu)
-  const [editCP, setEdit] = useState(null); // cp pk | null (price modal)
-  const [locCP, setLocCP] = useState(null); // cp pk | null (location modal)
-
-  /* temp input fields inside the two modals */
-  const [tmpK, setTmpK] = useState("");
-  const [tmpH, setTmpH] = useState("");
-  const [tmpL, setTmpL] = useState("");
-  const [tmpLat, setTmpLat] = useState(null);
-  const [tmpLng, setTmpLng] = useState(null);
-
   /* login + first fetch */
   const { logout } = useAuth();
-  const navigate = useNavigate();
+  const { isDark } = useTheme();
 
-  const [stats, setStats] = useState(null);   // NEW
+  const [stats, setStats] = useState(null);
   const [revenue, setRevenue] = useState(null);
 
-// helper
-const money = (n) => `${Number(n || 0).toFixed(2)} €`;
+  // helper
+  const money = (n) => {
+    const amount = Number(n || 0);
+    // Format with 2 decimal places and comma separators for thousands
+    return `€${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  };
 
   useEffect(() => {
-    fetchJson("/me/").then(setMe).catch(() => logout());
+    fetchUserProfile()
+      .then(setMe)
+      .catch(() => logout());
   }, [logout]);
 
   /* load + poll every 5 s */
@@ -103,12 +56,12 @@ const money = (n) => `${Number(n || 0).toFixed(2)} €`;
     if (!me?.tenant_ws) return;
 
     const load = () =>
-      Promise.all([fetchJson("/charge-points/"), fetchJson("/sessions/?limit=10"), fetchJson("/admin/charge-points/stats/"), fetchJson("/sessions/revenue/")]).then(
-        ([c, s, st, r]) => {
-          setCps(c);
-          setSes(s);
-          setStats(st);
-          setRevenue(r);
+      fetchDashboardData().then(
+        ({ chargePoints, sessions, stats, revenue }) => {
+          setCps(chargePoints);
+          setSes(sessions);
+          setStats(stats);
+          setRevenue(revenue);
         }
       );
 
@@ -117,526 +70,368 @@ const money = (n) => `${Number(n || 0).toFixed(2)} €`;
     return () => clearInterval(t);
   }, [me]);
 
-  async function handleLogout() {
-    try {
-      await logout(); // clear session client/server
-      navigate("/login");
-    } finally {
-      navigate("/login", { replace: true }); // go to login, prevent back nav
-    }
-  }
+  if (!me)
+    return <LoadingSpinner message="Loading user profile..." isDark={isDark} />;
 
-  /* optimistic UI helpers ----------------------------------------- */
-  async function updatePrices(pk) {
-    const price_kwh = Number(tmpK) || 0;
-    const price_hour = Number(tmpH) || 0;
-    await patchCP(pk, { price_per_kwh: price_kwh, price_per_hour: price_hour });
-    setCps((arr) =>
-      arr.map((c) =>
-        cpKey(c) === pk
-          ? { ...c, price_per_kwh: price_kwh, price_per_hour: price_hour }
-          : c
-      )
+  if (!me.tenant_ws)
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div
+            className={`p-8 rounded-2xl text-center max-w-md w-full ${
+              isDark ? "bg-neutral-900" : "bg-white shadow-md"
+            }`}
+          >
+            <div className="flex justify-center mb-4">
+              <div
+                className={`p-3 rounded-full ${
+                  isDark
+                    ? "bg-amber-500/20 text-amber-500"
+                    : "bg-amber-100 text-amber-600"
+                }`}
+              >
+                <AlertCircle size={24} />
+              </div>
+            </div>
+            <h2
+              className={`text-xl font-semibold mb-2 ${
+                isDark ? "text-white" : "text-neutral-800"
+              }`}
+            >
+              No Tenant Found
+            </h2>
+            <p
+              className={`text-sm ${
+                isDark ? "text-neutral-400" : "text-neutral-600"
+              }`}
+            >
+              You don't have a tenant workspace yet. Please contact your
+              administrator.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
     );
-  }
 
-  async function updateLocation(pk) {
-    const location = tmpL.trim();
-    const body = { location };
-    if (tmpLat != null && tmpLng != null) {
-      body.lat = tmpLat;
-      body.lng = tmpLng;
-    }
-    await patchCP(pk, body);
-    setCps((arr) => arr.map((c) => (cpKey(c) === pk ? { ...c, ...body } : c)));
-  }
-
-  /* ─────────────── early returns ────────────────────────────────── */
-  if (!me) return <p className="p-8">Loading…</p>;
-  if (!me.tenant_ws) return <p className="p-8">You don’t own a tenant yet.</p>;
-  if (!cps || !sessions) return <p className="p-8">Loading charge-points…</p>;
+  if (!cps || !sessions)
+    return (
+      <LoadingSpinner message="Loading dashboard data..." isDark={isDark} />
+    );
 
   // —— Revenue totals from backend ——
-const lifetimeRevenue = revenue?.lifetime ?? 0;
-const monthRevenue    = revenue?.month ?? 0;
-const monthLabel      = revenue?.month_label ??
-  new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  const lifetimeRevenue = revenue?.lifetime ?? 0;
+  const monthRevenue = revenue?.month ?? 0;
+  const monthLabel =
+    revenue?.month_label ??
+    new Date().toLocaleString(undefined, { month: "long", year: "numeric" });
 
-
-
-
-  /* ─────────────── render ───────────────────────────────────────── */
   return (
-    <div className="p-8 space-y-10">
-      <h1 className="text-2xl font-bold flex items-center justify-between">
-        <span>Dashboard</span>
-        <div className="flex items-center gap-3">
-<Link
-   to="/history"
-   className="px-4 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800"
- >
-   History
- </Link>
-
-         <button
-  type="button"
-  className="px-4 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-  onClick={() => {
-    console.log("→ navigating to /manage");
-    navigate("/manage");
-  }}
->
-  Manage
-</button>
-          <Link
-            to="/reports"
-            className="px-4 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+    <DashboardLayout>
+      <div className="w-full p-6 space-y-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Total Revenue Card */}
+          <div
+            className={`rounded-lg p-5 ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+            }`}
           >
-            Create report
-          </Link>
-          <Link to="/diagnose" className="btn btn-outline">
-            Diagnose
-          </Link>
-          <button className="btn" onClick={handleLogout}>
-            Logout
-          </button>
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className={`text-sm font-medium ${
+                  isDark ? "text-neutral-400" : "text-neutral-600"
+                }`}
+              >
+                Total Revenue
+              </h3>
+              <div
+                className={`p-2 rounded-lg ${
+                  isDark
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "bg-emerald-100 text-emerald-600"
+                }`}
+              >
+                <DollarSign size={16} />
+              </div>
+            </div>
+            <div
+              className={`text-2xl font-semibold mb-1 ${
+                isDark ? "text-white" : "text-neutral-800"
+              }`}
+            >
+              {money(lifetimeRevenue)}
+            </div>
+            <p
+              className={`text-xs ${
+                isDark ? "text-neutral-500" : "text-neutral-600"
+              }`}
+            >
+              Lifetime earnings
+            </p>
+          </div>
+
+          {/* Monthly Revenue Card */}
+          <div
+            className={`rounded-lg p-5 ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className={`text-sm font-medium ${
+                  isDark ? "text-neutral-400" : "text-neutral-600"
+                }`}
+              >
+                Monthly Revenue
+              </h3>
+              <div
+                className={`p-2 rounded-lg ${
+                  isDark
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-blue-100 text-blue-600"
+                }`}
+              >
+                <TrendingUp size={16} />
+              </div>
+            </div>
+            <div
+              className={`text-2xl font-semibold mb-1 ${
+                isDark ? "text-white" : "text-neutral-800"
+              }`}
+            >
+              {money(monthRevenue)}
+            </div>
+            <p
+              className={`text-xs ${
+                isDark ? "text-neutral-500" : "text-neutral-600"
+              }`}
+            >
+              {monthLabel}
+            </p>
+          </div>
+
+          {/* Stations Summary Card */}
+          <div
+            className={`rounded-lg p-5 ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className={`text-sm font-medium ${
+                  isDark ? "text-neutral-400" : "text-neutral-600"
+                }`}
+              >
+                Charge Points
+              </h3>
+              <div
+                className={`p-2 rounded-lg ${
+                  isDark
+                    ? "bg-purple-500/20 text-purple-400"
+                    : "bg-purple-100 text-purple-600"
+                }`}
+              >
+                <Zap size={16} />
+              </div>
+            </div>
+            <div
+              className={`text-2xl font-semibold mb-1 ${
+                isDark ? "text-white" : "text-neutral-800"
+              }`}
+            >
+              {cps.length}
+            </div>
+            <p
+              className={`text-xs ${
+                isDark ? "text-neutral-500" : "text-neutral-600"
+              }`}
+            >
+              Total stations
+            </p>
+          </div>
         </div>
-      </h1>
 
-
-{/* Revenue summary */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-  <div className="card bg-base-200">
-    <div className="card-body">
-      <div className="text-xs opacity-70">Total revenue (lifetime)</div>
-      <div className="text-3xl font-semibold">{money(lifetimeRevenue)}</div>
-    </div>
-  </div>
-
-  <div className="card bg-base-200">
-    <div className="card-body">
-      <div className="text-xs opacity-70">
-        Revenue this month ({monthLabel})
-      </div>
-      <div className="text-3xl font-semibold">{money(monthRevenue)}</div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-{/* CP status summary */}
-{(() => {
-  const t = stats?.totals || {};
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-      <StatCard label="Available"   value={t.available} />
-      <StatCard label="Unavailable" value={t.unavailable} />
-      <StatCard label="Charging"    value={t.charging} />
-      <StatCard label="Occupied"    value={t.occupied} />
-      <StatCard label="Preparing"   value={t.preparing} />
-      <StatCard label="Other"       value={t.other} />
-    </div>
-  );
-})()}
-
-
-      {/* websocket url */}
-      <div>
-        <p className="mb-1">Connect your charge-points to:</p>
-        <code className="block p-2 bg-slate-100 rounded">
-          {me.tenant_ws.replace(/^ws:\/\/[^/]+/, "ws://147.93.127.215:9000")}
-        </code>
-      </div>
-
-      {/* charge-points */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Charge-points</h2>
-
-        <table className="w-full text-sm">
-          <thead className="text-left border-b">
-            <tr>
-              <th>ID</th>
-              <th>Status</th>
-              <th>Conn</th>
-              <th>Updated</th>
-              <th className="text-right">€/kWh</th>
-              <th className="text-right">€/h</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cps.map((cp) => {
-              const key = cpKey(cp);
-              const fmtPrice = (v) => (v == null ? "—" : Number(v).toFixed(3)); // 3 dec for kWh
-              const fmtHour = (v) => (v == null ? "—" : Number(v).toFixed(2)); // 2 dec for €/h
-
-              return (
-                <tr key={String(key)} className="border-b last:border-0 hover:bg-slate-50">
-                  {/* ident / quick-link */}
-                  <td
-                    className="cursor-pointer"
-                    onClick={() => (location.href = `/cp/${encodeURIComponent(key)}`)}
-                  >
-                    {key}
-                  </td>
-
-                  {/* live status */}
-                  <td>{cp.status}</td>
-                  <td>{cp.connector_id}</td>
-                  <td>{fmt(cp.updated)}</td>
-
-                  {/* persisted prices */}
-                  <td className="text-right">{fmtPrice(cp.price_per_kwh)}</td>
-                  <td className="text-right">{fmtHour(cp.price_per_hour)}</td>
-
-                  {/* “⋮” context menu */}
-                  <td className="relative">
-                    <button
-                      className="px-2 text-lg"
-                      onClick={() => setMenu((m) => (m === key ? null : key))}
-                    >
-                      ⋮
-                    </button>
-
-                    {menuOpen === key && (
-                      <ul
-                        className="absolute right-0 z-10 mt-1 w-48 bg-white border rounded shadow"
-                        onMouseLeave={() => setMenu(null)}
-                      >
-                        <Li
-                          label="✏️  Edit connector"
-                          cb={() => {
-                            // pre-fill modal fields with CURRENT values
-                            setTmpK(cp.price_per_kwh ?? "");
-                            setTmpH(cp.price_per_hour ?? "");
-                            setEdit(key);
-                            setMenu(null);
-                          }}
-                        />
-                        <Li
-                          label="📍 Set location"
-                          cb={() => {
-                            setTmpL(cp.location ?? "");
-                            setTmpLat(cp.lat ?? null);
-                            setTmpLng(cp.lng ?? null);
-                            setLocCP(key);
-                            setMenu(null);
-                          }}
-                        />
-                        <Li label="👥 Define users" disabled />
-                        <Li label="🗓️  Define times" disabled />
-                      </ul>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-
-      {/* recent sessions */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Recent sessions</h2>
-
-        <table className="w-full text-sm">
-          <thead className="text-left border-b">
-            <tr>
-              <th>ID</th>
-              <th>CP</th>
-              <th>kWh</th>
-              <th>Started</th>
-              <th>Stopped</th>
-              <th className="text-right">Total (€)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((s) => {
-              const cp = cps.find((c) => cpKey(c) === s.cp); // look up price by pk
-              const k = Number(s.kWh ?? 0);
-              const tot = cp?.price_per_kwh ? (k * cp.price_per_kwh).toFixed(2) : "—";
-
-              return (
-                <tr key={s.id} className="border-b last:border-0">
-                  <td>{s.id}</td>
-                  <td>{s.cp}</td>
-                  <td>{k.toFixed(3)}</td>
-                  <td>{fmt(s.Started)}</td>
-                  <td>{fmt(s.Ended)}</td>
-                  <td className="text-right">{tot}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-
-      {/* ── price modal ───────────────────────────────────────────── */}
-      {editCP &&
-        createPortal(
-          <Modal onClose={() => setEdit(null)}>
-            <h2 className="text-xl font-semibold mb-4">Edit connector</h2>
-
-            <div className="mb-6 p-4 rounded shadow border">
-              <h3 className="font-medium mb-4">Prices</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <Field
-                  label="Price per kWh (€)"
-                  value={tmpK}
-                  onChange={(e) => setTmpK(e.target.value)}
-                />
-                <Field
-                  label="Price per h  (€)"
-                  value={tmpH}
-                  onChange={(e) => setTmpH(e.target.value)}
-                />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Status Overview */}
+          <div
+            className={`lg:col-span-2 rounded-2xl p-6 ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2
+                className={`text-lg font-semibold ${
+                  isDark ? "text-white" : "text-neutral-800"
+                }`}
+              >
+                Charge Point Status
+              </h2>
+              <div
+                className={`text-xs px-2 py-1 rounded ${
+                  isDark
+                    ? "bg-neutral-800 text-neutral-400"
+                    : "bg-neutral-100 text-neutral-600"
+                }`}
+              >
+                LIVE
               </div>
             </div>
 
-            <ModalButtons
-              onCancel={() => setEdit(null)}
-              onSave={async () => {
-                await updatePrices(editCP);
-                setEdit(null);
-              }}
-            />
-          </Modal>,
-          document.body
-        )}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {(() => {
+                const t = stats?.totals || {};
+                const statusItems = [
+                  {
+                    label: "Available",
+                    value: t.available,
+                    icon: Zap,
+                    color: "text-emerald-500",
+                    bgColor: "bg-emerald-500/10",
+                  },
+                  {
+                    label: "Charging",
+                    value: t.charging,
+                    icon: Activity,
+                    color: "text-blue-500",
+                    bgColor: "bg-blue-500/10",
+                  },
+                  {
+                    label: "Occupied",
+                    value: t.occupied,
+                    icon: Clock,
+                    color: "text-amber-500",
+                    bgColor: "bg-amber-500/10",
+                  },
+                  {
+                    label: "Unavailable",
+                    value: t.unavailable,
+                    icon: Settings,
+                    color: "text-rose-500",
+                    bgColor: "bg-rose-500/10",
+                  },
+                  {
+                    label: "Preparing",
+                    value: t.preparing,
+                    icon: Target,
+                    color: "text-purple-500",
+                    bgColor: "bg-purple-500/10",
+                  },
+                  {
+                    label: "Other",
+                    value: t.other,
+                    icon: BarChart3,
+                    color: "text-neutral-500",
+                    bgColor: "bg-neutral-500/10",
+                  },
+                ];
 
-      {/* ── location modal ────────────────────────────────────────── */}
-      {locCP &&
-        createPortal(
-          <LocationPickerModal
-            address={tmpL}
-            setAddress={setTmpL}
-            lat={tmpLat}
-            setLat={setTmpLat}
-            lng={tmpLng}
-            setLng={setTmpLng}
-            onCancel={() => setLocCP(null)}
-            onSave={async () => {
-              await updateLocation(locCP);
-              setLocCP(null);
-            }}
-          />,
-          document.body
-        )}
-    </div>
-  );
-}
+                return statusItems.map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={index}
+                      className={`p-4 rounded-xl transition-all duration-200 ${
+                        isDark
+                          ? "bg-neutral-800 hover:bg-neutral-750"
+                          : "bg-neutral-50 hover:bg-neutral-100"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className={`p-2 rounded-lg mr-3 ${item.bgColor} ${item.color}`}
+                        >
+                          <Icon size={16} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={`text-xs font-medium truncate ${
+                              isDark ? "text-neutral-400" : "text-neutral-600"
+                            }`}
+                          >
+                            {item.label}
+                          </div>
+                          <div
+                            className={`text-xl font-semibold ${
+                              isDark ? "text-white" : "text-neutral-800"
+                            }`}
+                          >
+                            {item.value ?? 0}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
 
-/* ——————————— Location picker modal ——————————— */
-function LocationPickerModal({
-  address,
-  setAddress,
-  lat,
-  setLat,
-  lng,
-  setLng,
-  onCancel,
-  onSave,
-}) {
-  const mapDivRef = useRef(null);
-  const mapRef = useRef(null);
-  const markerRef = useRef(null);
+          {/* Revenue Summary */}
+          <div
+            className={`rounded-lg p-6 ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2
+                className={`text-lg font-semibold ${
+                  isDark ? "text-white" : "text-neutral-800"
+                }`}
+              >
+                Revenue Summary
+              </h2>
+              <div className={`p-2 rounded-lg bg-blue-500/10 text-blue-500`}>
+                <DollarSign size={16} />
+              </div>
+            </div>
 
-  useEffect(() => {
-    // prevent double init & ensure container exists
-    if (!mapDivRef.current || mapRef.current) return;
-    if (!mapDivRef.current.isConnected) return;
+            <div className="space-y-6">
+              <div>
+                <div
+                  className={`text-xs font-medium mb-2 ${
+                    isDark ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
+                  This Month ({monthLabel})
+                </div>
+                <div
+                  className={`text-2xl font-bold mb-2 ${
+                    isDark ? "text-white" : "text-neutral-800"
+                  }`}
+                >
+                  {money(monthRevenue)}
+                </div>
+                <div className="flex items-center">
+                  <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
+                  <span className="text-xs font-medium text-emerald-500">
+                    +12.5% from last month
+                  </span>
+                </div>
+              </div>
 
-    const start = [lat ?? 46.948, lng ?? 7.4474]; // Bern fallback
-    const map = L.map(mapDivRef.current, {
-      zoomControl: true,
-      zoomAnimation: false,
-      fadeAnimation: false,
-      markerZoomAnimation: false,
-      inertia: false,
-    }).setView(start, lat && lng ? 15 : 12);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap",
-    }).addTo(map);
-
-    // keep modal clicks from closing backdrop
-    L.DomEvent.disableClickPropagation(mapDivRef.current);
-    L.DomEvent.disableScrollPropagation(mapDivRef.current);
-
-    const geocoder = L.Control.geocoder({
-      defaultMarkGeocode: false,
-      geocoder: L.Control.Geocoder.nominatim(),
-    })
-      .on("markgeocode", (e) => {
-        const c = e.geocode.center;
-        placeMarker(c.lat, c.lng);
-        setAddress(e.geocode.name ?? address);
-        if (mapRef.current) mapRef.current.setView(c, 16);
-      })
-      .addTo(map);
-
-    map.on("click", (e) => placeMarker(e.latlng.lat, e.latlng.lng));
-    mapRef.current = map;
-
-    // sizing fix after mount
-    setTimeout(() => map.invalidateSize(), 0);
-
-    return () => {
-      try {
-        geocoder.off();
-      } catch {}
-      try {
-        markerRef.current?.remove();
-      } catch {}
-      try {
-        map.off();
-      } catch {}
-      try {
-        map.remove();
-      } catch {}
-      markerRef.current = null;
-      mapRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, lat, lng, setAddress]);
-
-  function placeMarker(a, b) {
-    const map = mapRef.current;
-    if (!map) return;
-    if (!markerRef.current) {
-      const mk = L.marker([a, b], { draggable: true }).addTo(map);
-      mk.on("dragend", () => {
-        const p = mk.getLatLng();
-        setLat(Number(p.lat.toFixed(6)));
-        setLng(Number(p.lng.toFixed(6)));
-        reverse(p.lat, p.lng);
-      });
-      markerRef.current = mk;
-    } else {
-      markerRef.current.setLatLng([a, b]);
-    }
-    setLat(Number(a.toFixed(6)));
-    setLng(Number(b.toFixed(6)));
-    reverse(a, b);
-  }
-
-  function reverse(a, b) {
-    const nominatim = L.Control.Geocoder.nominatim();
-    nominatim.reverse({ lat: a, lng: b }, 18, (res) => {
-      if (res?.[0]?.name) setAddress(res[0].name);
-    });
-  }
-
-
-
-  function geocodeFromInput(e) {
-    if (e.key !== "Enter" || !mapRef.current) return;
-    e.preventDefault();
-    const nominatim = L.Control.Geocoder.nominatim();
-    nominatim.geocode(address, (results) => {
-      const c = results?.[0]?.center || results?.[0]?.bbox?.getCenter?.();
-      if (c && mapRef.current) {
-        placeMarker(c.lat, c.lng);
-        mapRef.current.setView(c, 16);
-      }
-    });
-  }
-
-  return (
-    <Modal onClose={onCancel}>
-      <h2 className="text-xl font-semibold mb-4">Set location</h2>
-      <div className="mb-6 p-4 rounded shadow border space-y-3">
-        <Field
-          label="Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          onKeyDown={geocodeFromInput}
-        />
-        <div
-          ref={mapDivRef}
-          className="rounded"
-          style={{ height: 380, width: "100%" }}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Latitude" value={lat ?? ""} readOnly />
-          <Field label="Longitude" value={lng ?? ""} readOnly />
+              <div className="pt-4 border-t border-dashed border-neutral-700/30">
+                <div
+                  className={`text-xs font-medium mb-2 ${
+                    isDark ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
+                  Average Session Value
+                </div>
+                <div
+                  className={`text-lg font-semibold ${
+                    isDark ? "text-white" : "text-neutral-800"
+                  }`}
+                >
+                  {money(monthRevenue / (sessions.length || 1))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-slate-500">
-          Search, click the map, or drag the pin. We’ll save this address (and
-          coordinates if supported).
-        </p>
+
+        <RecentSessions sessions={sessions} cps={cps} cpKey={cpKey} fmt={fmt} />
       </div>
-      <ModalButtons onCancel={onCancel} onSave={onSave} />
-    </Modal>
+    </DashboardLayout>
   );
 }
-
-function StatCard({ label, value }) {
-  return (
-    <div className="card bg-base-200">
-      <div className="card-body items-center">
-        <div className="text-xs opacity-70">{label}</div>
-        <div className="text-3xl font-semibold">{value ?? 0}</div>
-      </div>
-    </div>
-  );
-}
-
-
-
-/* ——————————— small presentational helpers ——————————— */
-const Li = ({ label, cb, disabled }) => (
-  <li>
-    <button
-      disabled={disabled}
-      onClick={cb}
-      className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-100 disabled:text-slate-400"
-    >
-      {label}
-    </button>
-  </li>
-);
-
-const Modal = ({ children, onClose }) => (
-  <div
-    className="fixed inset-0 z-20 flex items-center justify-center bg-black/30"
-    onClick={(e) => {
-      // only close when clicking the backdrop itself
-      if (e.target === e.currentTarget) onClose?.();
-    }}
-  >
-    <div
-      className="max-h-[90vh] w-[34rem] overflow-y-auto bg-white rounded shadow-lg p-6"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {children}
-    </div>
-  </div>
-);
-
-const Field = ({ label, value, onChange, ...rest }) => (
-  <label className="block">
-    <span className="text-sm text-slate-600">{label}</span>
-    <input
-      className="mt-1 w-full border-b outline-none focus:border-blue-500 py-1"
-      value={value}
-      onChange={onChange}
-      {...rest}
-    />
-  </label>
-);
-
-const ModalButtons = ({ onCancel, onSave }) => (
-  <div className="flex justify-end gap-3">
-    <button className="px-4 py-1.5 rounded bg-slate-100" onClick={onCancel}>
-      Cancel
-    </button>
-    <button className="px-4 py-1.5 rounded bg-blue-600 text-white" onClick={onSave}>
-      Save
-    </button>
-  </div>
-);

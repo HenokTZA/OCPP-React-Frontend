@@ -1,56 +1,84 @@
-/*********************************************************************
- * Reports.jsx – choose charge points, then create/download a report *
- *********************************************************************/
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { fetchJson, fetchBlob, downloadBlob } from "@/lib/api"; // ✅ use helpers
+import { fetchJson, fetchBlob, downloadBlob } from "@/lib/api";
+import { useTheme } from "@/lib/theme";
+import DashboardLayout from "@/components/DashboardLayout";
+import {
+  FileText,
+  CheckSquare,
+  Square,
+  Loader2,
+  AlertCircle,
+  BarChart3,
+  Download,
+  RefreshCw,
+} from "lucide-react";
+import ReportModal from "../components/ReportModal";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function Reports() {
+  const { isDark } = useTheme();
   const [cps, setCps] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set());
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState(null);
 
   // modal fields
   const today = new Date().toISOString().slice(0, 10);
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(today);
-  const [tax, setTax] = useState("0");           // percent
-  const [fmt, setFmt] = useState("pdf");         // 'pdf' | 'excel'
+  const [tax, setTax] = useState("0");
+  const [fmt, setFmt] = useState("pdf");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetchJson("/charge-points/").then(setCps).catch((e) => {
-      console.error("Failed to load CPs:", e);
-    });
+    fetchJson("/charge-points/")
+      .then(setCps)
+      .catch((e) => {
+        console.error("Failed to load CPs:", e);
+        setError("Failed to load charge points");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (!cps) return <p className="p-8">Loading…</p>;
-
   const toggle = (id) => {
-    setSelected(prev => {
+    setSelected((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  const selectAll = () => setSelected(new Set(cps.map(c => c.id)));
-  const clearAll  = () => setSelected(new Set());
+  const selectAll = () => setSelected(new Set(cps.map((c) => c.id)));
+  const clearAll = () => setSelected(new Set());
+
+  const selectedCount = selected.size;
+  const totalCount = cps?.length || 0;
 
   async function createReport() {
-    if (!selected.size) { alert("Select at least one station."); return; }
-    if (!start || !end) { alert("Pick start and end dates."); return; }
-    if (start > end)    { alert("Start date can’t be after end date."); return; }
+    if (!selected.size) {
+      setError("Please select at least one charging station");
+      return;
+    }
+    if (!start || !end) {
+      setError("Please select start and end dates");
+      return;
+    }
+    if (start > end) {
+      setError("Start date cannot be after end date");
+      return;
+    }
 
+    setError(null);
     setBusy(true);
     try {
-      // ✅ Use fetchBlob so the absolute API root + JWT header are applied
       const payload = {
         cp_ids: [...selected],
         start,
         end,
-        tax_rate: Number(tax),   // percent from UI
-        format: fmt,             // 'pdf' | 'excel'
+        tax_rate: Number(tax),
+        format: fmt,
       };
 
       const blob = await fetchBlob("/reports/", {
@@ -59,144 +87,289 @@ export default function Reports() {
       });
 
       const ext = fmt === "excel" ? "xlsx" : "pdf";
-      downloadBlob(blob, `report_${start}_${end}.${ext}`);
+      downloadBlob(blob, `charging_report_${start}_to_${end}.${ext}`);
       setOpen(false);
     } catch (e) {
       console.error(e);
-      // If backend returned JSON error, it will be the blob->text; api still throws,
-      // so we keep a generic toast here:
-      alert("Failed to create report.");
+      setError("Failed to create report. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
+  if (loading)
+    return (
+      <LoadingSpinner message="Loading charge points..." isDark={isDark} />
+    );
+
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Create Report</h1>
-        <button
-          className="px-3 py-1.5 rounded bg-slate-100"
-          onClick={() => history.back()}
-        >
-          ← Back
-        </button>
-      </div>
-
-      <div className="flex gap-3">
-        <button className="px-3 py-1.5 rounded bg-slate-100" onClick={selectAll}>Select all</button>
-        <button className="px-3 py-1.5 rounded bg-slate-100" onClick={clearAll}>Clear</button>
-        <button
-          className="ml-auto px-4 py-1.5 rounded bg-blue-600 text-white"
-          onClick={() => setOpen(true)}
-        >
-          Create report
-        </button>
-      </div>
-
-      <table className="w-full text-sm">
-        <thead className="text-left border-b">
-          <tr>
-            <th className="w-10"></th>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Conn</th>
-            <th>Location</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cps.map(cp => (
-            <tr key={cp.id} className="border-b last:border-0">
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selected.has(cp.id)}
-                  onChange={() => toggle(cp.id)}
-                />
-              </td>
-              <td>{cp.id}</td>
-              <td>{cp.status}</td>
-              <td>{cp.connector_id}</td>
-              <td>{cp.location || "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {open && createPortal(
-        <Modal onClose={() => setOpen(false)}>
-          <h2 className="text-xl font-semibold mb-4">Report options</h2>
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <Field label="Start date">
-              <input
-                type="date" value={start}
-                className="mt-1 w-full border-b outline-none py-1"
-                onChange={e => setStart(e.target.value)}
-              />
-            </Field>
-            <Field label="End date">
-              <input
-                type="date" value={end}
-                className="mt-1 w-full border-b outline-none py-1"
-                onChange={e => setEnd(e.target.value)}
-              />
-            </Field>
-            <Field label="Tax rate (%)">
-              <input
-                type="number" step="0.01" min="0"
-                value={tax}
-                className="mt-1 w-full border-b outline-none py-1"
-                onChange={e => setTax(e.target.value)}
-              />
-            </Field>
-            <Field label="Format">
-              <select
-                value={fmt}
-                className="mt-1 w-full border-b outline-none py-1 bg-transparent"
-                onChange={e => setFmt(e.target.value)}
-              >
-                <option value="pdf">PDF</option>
-                <option value="excel">Excel (.xlsx)</option>
-              </select>
-            </Field>
-          </div>
-          <div className="flex justify-end gap-3">
-            <button className="px-4 py-1.5 rounded bg-slate-100" onClick={() => setOpen(false)}>Cancel</button>
-            <button
-              className="px-4 py-1.5 rounded bg-blue-600 text-white disabled:opacity-60"
-              disabled={busy}
-              onClick={createReport}
+    <DashboardLayout>
+      <div className={`h-full p-6 space-y-6`}>
+        <div className="w-full space-y-6">
+          {error && (
+            <div
+              className={`p-4 rounded-xl flex items-center gap-3 ${
+                isDark ? "bg-red-900/20 text-red-300" : "bg-red-50 text-red-800"
+              }`}
             >
-              {busy ? "Creating…" : "Create"}
-            </button>
+              <AlertCircle className="w-5 h-5" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Selection Controls */}
+          <div
+            className={`p-5 rounded-xl ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white"
+            } shadow-sm`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-sm font-medium ${
+                    isDark ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
+                  {selectedCount} of {totalCount} stations selected
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={selectAll}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                    isDark
+                      ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  }`}
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  Select All
+                </button>
+
+                <button
+                  onClick={clearAll}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                    isDark
+                      ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  }`}
+                >
+                  <Square className="w-4 h-4" />
+                  Clear All
+                </button>
+
+                <button
+                  onClick={() => setOpen(true)}
+                  disabled={selectedCount === 0}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedCount === 0
+                      ? isDark
+                        ? "bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                        : "bg-neutral-200 text-neutral-400 cursor-not-allowed"
+                      : isDark
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                >
+                  <Download className="w-4 h-4" />
+                  Generate Report
+                </button>
+              </div>
+            </div>
           </div>
-        </Modal>,
-        document.body
-      )}
-    </div>
-  );
-}
 
-/* small helpers (reuse your Modal style) */
-function Modal({ children, onClose }) {
-  return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-[36rem] overflow-y-auto bg-white rounded shadow-lg p-6"
-        onClick={(e) => e.stopPropagation()}  // ✅ was truncated in your paste
-      >
-        {children}
+          {/* Charge Points List */}
+          <div
+            className={`rounded-xl overflow-hidden ${
+              isDark ? "bg-[#0f0f0e]" : "bg-white"
+            } shadow-sm`}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr
+                    className={`border-b ${
+                      isDark ? "border-neutral-800" : "border-neutral-100"
+                    }`}
+                  >
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                      <span
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-600"
+                        }
+                      >
+                        Select
+                      </span>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                      <span
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-600"
+                        }
+                      >
+                        Charge Point
+                      </span>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                      <span
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-600"
+                        }
+                      >
+                        Status
+                      </span>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                      <span
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-600"
+                        }
+                      >
+                        Connector
+                      </span>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                      <span
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-600"
+                        }
+                      >
+                        Location
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                  {cps.map((cp) => (
+                    <tr
+                      key={cp.id}
+                      className={`transition-colors ${
+                        isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-50"
+                      } ${
+                        selected.has(cp.id)
+                          ? isDark
+                            ? "bg-neutral-800"
+                            : "bg-blue-50"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(cp.id)}
+                          onChange={() => toggle(cp.id)}
+                          className={`w-4 h-4 rounded ${
+                            isDark
+                              ? "bg-neutral-800 border-neutral-700 text-emerald-600"
+                              : "border-neutral-300 text-emerald-600"
+                          } focus:ring-emerald-500`}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`font-medium ${
+                            isDark ? "text-white" : "text-neutral-900"
+                          }`}
+                        >
+                          {cp.name || `CP ${cp.id}`}
+                        </span>
+                        <div
+                          className={`text-xs ${
+                            isDark ? "text-neutral-400" : "text-neutral-600"
+                          }`}
+                        >
+                          ID: {cp.id}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            isDark
+                              ? "bg-opacity-20 text-white"
+                              : "text-neutral-800"
+                          } ${
+                            cp.status === "Available"
+                              ? "bg-emerald-500"
+                              : cp.status === "Charging"
+                              ? "bg-amber-500"
+                              : cp.status === "Unavailable"
+                              ? "bg-rose-500"
+                              : "bg-neutral-500"
+                          }`}
+                        >
+                          {cp.status || "Unknown"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={isDark ? "text-white" : "text-neutral-900"}
+                        >
+                          {cp.connector_id || "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={
+                            isDark ? "text-neutral-400" : "text-neutral-600"
+                          }
+                        >
+                          {cp.location || "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {cps.length === 0 && (
+            <div
+              className={`text-center py-12 rounded-xl ${
+                isDark ? "bg-neutral-900" : "bg-white"
+              } shadow-sm`}
+            >
+              <FileText
+                className={`w-12 h-12 mx-auto mb-4 ${
+                  isDark ? "text-neutral-400" : "text-neutral-600"
+                }`}
+              />
+              <h3
+                className={`text-lg font-medium mb-2 ${
+                  isDark ? "text-white" : "text-neutral-900"
+                }`}
+              >
+                No charge points found
+              </h3>
+              <p className={isDark ? "text-neutral-400" : "text-neutral-600"}>
+                There are no charge points available to generate reports.
+              </p>
+            </div>
+          )}
+
+          {/* Report Modal */}
+          {open &&
+            createPortal(
+              <ReportModal
+                setOpen={setOpen}
+                busy={busy}
+                selectedCount={selectedCount}
+                isDark={isDark}
+                createReport={createReport}
+                start={start}
+                setStart={setStart}
+                end={end}
+                setEnd={setEnd}
+                tax={tax}
+                setTax={setTax}
+                fmt={fmt}
+                setFmt={setFmt}
+              />,
+              document.body
+            )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
-
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <span className="text-sm text-slate-600">{label}</span>
-      {children}
-    </label>
-  );
-}
-
