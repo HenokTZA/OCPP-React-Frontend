@@ -249,7 +249,26 @@ curl -s -X POST "%BASE%/api/charge-points/<pk>/command/" -H "Authorization: Bear
 
 **backend log:**
 ```json
-{"detail":"queued"}
+[CMD] BURA → RemoteStartTransaction {'id_tag': 'TAG123', 'connector_id': 1}
+INFO:ocpp:BURA: send [2,"85912e8b-bf6f-400a-9c61-bc00657c6891","RemoteStartTransaction",{"idTag":"TAG123","connectorId":1}]
+INFO:ocpp:BURA: receive message [3,"85912e8b-bf6f-400a-9c61-bc00657c6891",{"status":"Accepted"}]
+[CMD]  ↳  RemoteStartTransaction(status='Accepted')
+INFO:ocpp:BURA: receive message [2,"8934b43c-f0ad-4938-ac33-c93eb6dba7ae","Authorize",{"idTag":"TAG123"}]
+INFO:ocpp:BURA: send [3,"8934b43c-f0ad-4938-ac33-c93eb6dba7ae",{"idTagInfo":{"status":"Accepted"}}]
+INFO:ocpp:BURA: receive message [2,"a59c0719-1451-4730-8c29-75aebd00c5a0","StartTransaction",{"connectorId":1,"idTag":"TAG123","meterStart":0,"timestamp":"2025-09-05T18:51:43+03"}]
+[StartTx] #90 on BURA meterStart=0Wh
+INFO:ocpp:BURA: send [3,"a59c0719-1451-4730-8c29-75aebd00c5a0",{"transactionId":90,"idTagInfo":{"status":"Accepted"}}]
+INFO:ocpp:BURA: receive message [2,"e2e61b39-131d-4ffb-81b6-9a760f897869","StatusNotification",{"connectorId":1,"errorCode":"NoError","status":"Preparing","timestamp":"2025-09-05T18:51:44+03"}]
+[Status] BURA c1 → Preparing
+INFO:ocpp:BURA: send [3,"e2e61b39-131d-4ffb-81b6-9a760f897869",{}]
+INFO:ocpp:BURA: receive message [2,"d9802363-cd69-4872-b4f3-905a8de42ac0","StatusNotification",{"connectorId":1,"errorCode":"NoError","status":"Charging","timestamp":"2025-09-05T18:51:44+03"}]
+[Status] BURA c1 → Charging
+INFO:ocpp:BURA: send [3,"d9802363-cd69-4872-b4f3-905a8de42ac0",{}]
+INFO:ocpp:BURA: receive message [2,"b6fff27d-623b-4f3d-b0e7-1145b73f8317","StatusNotification",{"connectorId":1,"errorCode":"NoError","status":"Charging","timestamp":"2025-09-05T18:51:45+03"}]
+[Status] BURA c1 → Charging
+INFO:ocpp:BURA: send [3,"b6fff27d-623b-4f3d-b0e7-1145b73f8317",{}]
+INFO:ocpp:BURA: receive message [2,"15b715e8-2968-4856-afe3-d57fdd65a527","Heartbeat",{}]
+INFO:ocpp:BURA: send [3,"15b715e8-2968-4856-afe3-d57fdd65a527",{"currentTime":"2025-09-05T15:51:58.612793+00:00"}]
 ```
 
 ---
