@@ -235,6 +235,23 @@ curl -s "%BASE%/api/charge-points/<pk>/" ^
 
 ## Quick Start (Windows CMD)
 
+### 1) Start Remote Transaction
+
+```bat
+curl -s -X POST "%BASE%/api/charge-points/<pk>/command/" -H "Authorization: Bearer %ACCESS%" -H "Content-Type: application/json" -d "{\"action\":\"RemoteStartTransaction\",\"params\":{\"idTag\":\"TAG123\",\"connectorId\":1}}"
+
+```
+
+**Success (example):**
+```json
+{"detail":"queued"}
+```
+
+**backend log:**
+```json
+{"detail":"queued"}
+```
+
 ---
 
 ## Endpoint Reference
