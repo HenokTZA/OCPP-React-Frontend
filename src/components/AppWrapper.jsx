@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { SidebarProvider } from '@/lib/sidebarContext';
 import SplashScreen from '@/pages/SplashScreen';
 
 export default function AppWrapper({ children }) {
@@ -49,6 +50,10 @@ export default function AppWrapper({ children }) {
   }, [showSplash, loading, splashComplete, isAuth, user?.role, location.pathname, navigate]);
 
   if (showSplash || loading) return <SplashScreen />;
-  return children;
+  return (
+    <SidebarProvider>
+      {children}
+    </SidebarProvider>
+  );
 }
 

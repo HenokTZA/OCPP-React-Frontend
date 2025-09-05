@@ -76,12 +76,13 @@ function RecentSessions({ sessions, cps, cpKey, fmt }) {
             </tr>
           </thead>
           <tbody>
-            {sessions.slice(0, 4).map((s, index) => {
+            {sessions.slice(0, 10).map((s, index) => {
               const cp = cps.find((c) => cpKey(c) === s.cp);
               const k = Number(s.kWh ?? 0);
-              const tot = cp?.price_per_kwh
-                ? (k * cp.price_per_kwh).toFixed(2)
-                : "—";
+              // const tot = cp?.price_per_kwh
+              //   ? (k * cp.price_per_kwh).toFixed(2)
+              //   : "—";
+              const tot = s.total ? Number(s.total).toFixed(2) : "—";
 
               const statusColors = {
                 Success: "text-green-500 bg-green-500/10",

@@ -7,7 +7,6 @@ import {
   Clock,
   MapPin,
   User,
-  CreditCard,
   AlertCircle,
   Play,
   StopCircle,
@@ -16,9 +15,29 @@ import {
   Battery,
   Calendar,
   DollarSign,
+  CheckCircle,
+  Key,
+  BatteryCharging,
+  Plug,
+  Settings,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import UserLoadingSpinner from "@/components/UserLoadingSpinner";
+
+const PLUG_LABELS = {
+  type2: "Type 2",
+  eu: "EU Schuko",
+  uk: "UK",
+  swiss: "Swiss",
+  ccs2: "CCS2",
+  chademo: "CHAdeMO",
+};
+
+const ACCESS_LABELS = {
+  public: "Public",
+  limited: "Limited",
+  private: "Private",
+};
 
 export default function CPDetailPage({ byCode = false }) {
   const { cpId, code } = useParams();
@@ -29,7 +48,7 @@ export default function CPDetailPage({ byCode = false }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [processedSession, setProcessedSession] = useState(false);
-  const [amount, setAmount] = useState(5); // Default €5
+  const [amount, setAmount] = useState(5);
 
   const isCharging = useMemo(() => cp?.status === "Charging", [cp?.status]);
   const cpRef = useRef(null);
@@ -278,15 +297,6 @@ export default function CPDetailPage({ byCode = false }) {
                 {getStatusText(cp.status)}
               </span>
 
-              {cp.connector_type && (
-                <span
-                  className={`text-sm ${
-                    isDark ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  {cp.connector_type}
-                </span>
-              )}
             </div>
 
             {cp.location && (
@@ -347,9 +357,12 @@ export default function CPDetailPage({ byCode = false }) {
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Energy Pricing Card */}
           <div
             className={`p-6 rounded-xl text-sm ${
-              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+              isDark
+                ? "bg-[#0f0f0e] border border-gray-800"
+                : "bg-white shadow-sm border border-gray-100"
             }`}
           >
             <div className="flex items-center gap-3 mb-4">
@@ -377,16 +390,25 @@ export default function CPDetailPage({ byCode = false }) {
                 isDark ? "text-white" : "text-gray-900"
               }`}
             >
-              {cp.price_per_kwh ?? "—"} €/kWh
+              {cp.price_per_kwh ? (Number(cp.price_per_kwh) / 1).toFixed(3) : "—"} €/kWh
             </div>
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>
               Price per kilowatt-hour
+              {/* {cp.effective_price_per_kwh != null &&
+                cp.effective_price_per_kwh !== cp.price_per_kwh && (
+                  <span className="ml-2 text-xs opacity-70">
+                    (default: {cp.price_per_kwh ?? "—"})
+                  </span>
+                )} */}
             </p>
           </div>
 
+          {/* Time Pricing Card */}
           <div
             className={`p-6 rounded-xl text-sm ${
-              isDark ? "bg-[#0f0f0e]" : "bg-white shadow-sm"
+              isDark
+                ? "bg-[#0f0f0e] border border-gray-800"
+                : "bg-white shadow-sm border border-gray-100"
             }`}
           >
             <div className="flex items-center gap-3 mb-4">
@@ -414,11 +436,167 @@ export default function CPDetailPage({ byCode = false }) {
                 isDark ? "text-white" : "text-gray-900"
               }`}
             >
-              {cp.price_per_hour ?? "—"} €/h
+              {cp.price_per_hour ? (Number(cp.price_per_hour) / 1).toFixed(2) : "—"} €/h
             </div>
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>
               Price per hour of charging
+              {/* {cp.effective_price_per_hour != null &&
+                cp.effective_price_per_hour !== cp.price_per_hour && (
+                  <span className="ml-2 text-xs opacity-70">
+                    (default: {cp.price_per_hour ?? "—"})
+                  </span>
+                )} */}
             </p>
+          </div>
+
+          {/* Additional Details Card */}
+          <div
+            className={`p-6 rounded-xl text-sm md:col-span-2 ${
+              isDark
+                ? "bg-[#0f0f0e] border border-gray-800"
+                : "bg-white shadow-sm border border-gray-100"
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className={`p-2 rounded-lg ${
+                  isDark ? "bg-green-500/20" : "bg-green-100"
+                }`}
+              >
+                <Settings
+                  className={`w-5 h-5 ${
+                    isDark ? "text-green-400" : "text-green-600"
+                  }`}
+                />
+              </div>
+              <h3
+                className={`font-semibold ${
+                  isDark ? "text-white" : "text-gray-900"
+                }`}
+              >
+                Charging Details
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Plug
+                    className={`w-5 h-5 mt-0.5 ${
+                      isDark ? "text-blue-400" : "text-blue-500"
+                    }`}
+                  />
+                  <div>
+                    <p
+                      className={
+                        isDark
+                          ? "text-gray-400 text-sm"
+                          : "text-gray-500 text-sm"
+                      }
+                    >
+                      Plug type
+                    </p>
+                    <p
+                      className={
+                        isDark
+                          ? "text-white font-medium"
+                          : "text-gray-900 font-medium"
+                      }
+                    >
+                      {cp.plug_type_label || PLUG_LABELS[cp.plug_type] || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <BatteryCharging
+                    className={`w-5 h-5 mt-0.5 ${
+                      isDark ? "text-yellow-400" : "text-yellow-500"
+                    }`}
+                  />
+                  <div>
+                    <p
+                      className={
+                        isDark
+                          ? "text-gray-400 text-sm"
+                          : "text-gray-500 text-sm"
+                      }
+                    >
+                      Max power
+                    </p>
+                    <p
+                      className={
+                        isDark
+                          ? "text-white font-medium"
+                          : "text-gray-900 font-medium"
+                      }
+                    >
+                      {cp.max_power_kw ? Number(cp.max_power_kw).toFixed(1) : "—"} kW
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Plug
+                    className={`w-5 h-5 mt-0.5 ${
+                      isDark ? "text-orange-400" : "text-orange-500"
+                    }`}
+                  />
+                  <div>
+                    <p
+                      className={
+                        isDark
+                          ? "text-gray-400 text-sm"
+                          : "text-gray-500 text-sm"
+                      }
+                    >
+                      Connector ID
+                    </p>
+                    <p
+                      className={
+                        isDark
+                          ? "text-white font-medium"
+                          : "text-gray-900 font-medium"
+                      }
+                    >
+                      {cp.connector_id ?? "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Key
+                    className={`w-5 h-5 mt-0.5 ${
+                      isDark ? "text-purple-400" : "text-purple-500"
+                    }`}
+                  />
+                  <div>
+                    <p
+                      className={
+                        isDark
+                          ? "text-gray-400 text-sm"
+                          : "text-gray-500 text-sm"
+                      }
+                    >
+                      Access type
+                    </p>
+                    <p
+                      className={
+                        isDark
+                          ? "text-white font-medium"
+                          : "text-gray-900 font-medium"
+                      }
+                    >
+                      {cp.access_type_label ||
+                        ACCESS_LABELS[cp.access_type] ||
+                        "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -439,33 +617,35 @@ export default function CPDetailPage({ byCode = false }) {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  className={`p-4 rounded-xl ${
-                    isDark ? "bg-zinc-800" : "bg-gray-100"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Battery
-                      className={`w-5 h-5 ${
-                        isDark ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Energy Delivered
-                    </span>
-                  </div>
+                {cp.current_kwh && (
                   <div
-                    className={`text-2xl font-bold ${
-                      isDark ? "text-white" : "text-gray-900"
+                    className={`p-4 rounded-xl ${
+                      isDark ? "bg-zinc-800" : "bg-gray-100"
                     }`}
                   >
-                    {Number(cp.current_kwh || 0).toFixed(3)} kWh
+                    <div className="flex items-center gap-2 mb-2">
+                      <Battery
+                        className={`w-5 h-5 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-medium ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Energy Delivered
+                      </span>
+                    </div>
+                    <div
+                      className={`text-2xl font-bold ${
+                        isDark ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {Number(cp.current_kwh).toFixed(3)} kWh
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {cp.updated && (
                   <div

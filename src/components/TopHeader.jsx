@@ -1,10 +1,13 @@
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import { Menu, ChevronDown, Globe, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function TopHeader({ toggleSidebar, user }) {
   const { isDark } = useTheme();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 

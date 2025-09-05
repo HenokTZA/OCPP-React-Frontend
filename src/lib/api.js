@@ -114,8 +114,8 @@ export function fetchChargePoints() {
 }
 
 /** Fetch recent sessions with limit */
-export function fetchRecentSessions(limit = 10) {
-  return fetchJson(`/sessions/?limit=${limit}`);
+export function fetchRecentSessions() {
+  return fetchJson(`/sessions/?limit=10`);
 }
 
 /** Fetch charge point statistics */
@@ -137,7 +137,12 @@ export function updateChargePointPricing(pk, priceKwh, priceHour) {
 }
 
 /** Update charge point location */
-export function updateChargePointLocation(pk, location, lat = null, lng = null) {
+export function updateChargePointLocation(
+  pk,
+  location,
+  lat = null,
+  lng = null
+) {
   const body = { location };
   if (lat != null && lng != null) {
     body.lat = lat;
@@ -150,11 +155,11 @@ export function updateChargePointLocation(pk, location, lat = null, lng = null) 
 export async function fetchDashboardData() {
   const [chargePoints, sessions, stats, revenue] = await Promise.all([
     fetchChargePoints(),
-    fetchRecentSessions(10),
+    fetchRecentSessions(),
     fetchChargePointStats(),
     fetchRevenue(),
   ]);
-  
+
   return {
     chargePoints,
     sessions,
@@ -162,4 +167,3 @@ export async function fetchDashboardData() {
     revenue,
   };
 }
-

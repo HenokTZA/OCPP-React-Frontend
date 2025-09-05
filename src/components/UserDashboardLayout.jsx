@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
-import { useState } from "react";
+import { useSidebar } from "@/lib/sidebarContext";
 import UserSidebar from "./UserSidebar";
 import TopHeader from "./TopHeader";
 import ThemeToggle from "./ThemeToggle";
@@ -8,11 +8,7 @@ import ThemeToggle from "./ThemeToggle";
 export default function UserDashboardLayout({ children }) {
   const { isDark } = useTheme();
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
 
   return (
     <div

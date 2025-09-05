@@ -1,6 +1,7 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { useSidebar } from "@/lib/sidebarContext";
 import {
   Map,
   MapPin,
@@ -9,13 +10,19 @@ import {
   LogOut,
   X,
   ChevronRight,
+  PanelRightOpen, // For expanded state
+  PanelRightClose,
+  MenuIcon,
+  ChevronLeft, // For collapsed state
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const { isDark } = useTheme();
+  const { isCollapsed, toggleCollapse } = useSidebar();
 
   async function handleLogout() {
     try {
@@ -52,6 +59,7 @@ export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
     },
   ];
 
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -64,8 +72,10 @@ export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
 
       {/* Sidebar */}
       <div
-        className={`fixed lg:relative w-64 h-screen flex flex-col z-30 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed lg:relative h-screen flex flex-col z-30 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
+          isCollapsed ? "w-20" : "w-64"
         } ${
           isDark
             ? "bg-[#030a01] text-dark-text-primary bg-dark-bg-primary border-r border-gray-800"
@@ -74,36 +84,76 @@ export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between p-4 h-20 ${
+          className={`flex items-center justify-between p-4 h-20 relative ${
             isDark
               ? "bg-[#020d00] border-b border-gray-800"
               : "bg-white border-b border-gray-200"
           }`}
         >
-          <div className="flex gap-2 items-center">
+          <div
+            className={`flex gap-2 items-center ${
+              isCollapsed ? "justify-center w-full" : ""
+            }`}
+          >
             <img src={logo} alt="Logo" className="w-10 object-contain" />
-            <div className="flex flex-col items-start">
-              <h1
-                className={`text-heading-sm ${
-                  isDark ? "text-dark-text-primary" : "text-light-text-primary"
-                }`}
-              >
-                EV Dashboard
-              </h1>
-              <p
-                className={`text-caption-md ${
-                  isDark
-                    ? "text-dark-text-secondary"
-                    : "text-light-text-secondary"
-                }`}
-              >
-                Charging Station Finder
-              </p>
-            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col items-start">
+                <h1
+                  className={`text-heading-sm ${
+                    isDark
+                      ? "text-dark-text-primary"
+                      : "text-light-text-primary"
+                  }`}
+                >
+                  EV Dashboard
+                </h1>
+                <p
+                  className={`text-caption-md ${
+                    isDark
+                      ? "text-dark-text-secondary"
+                      : "text-light-text-secondary"
+                  }`}
+                >
+                  Charging Station Finder
+                </p>
+              </div>
+            )}
           </div>
-          <button onClick={toggleSidebar} className="lg:hidden p-1 rounded-md">
-            <X className="w-5 h-5" />
+          
+          {/* Collapse/Expand button - positioned at the right edge */}
+          <button
+            onClick={toggleCollapse}
+            className="hidden lg:flex absolute -right-1.5 items-center justify-center rounded-md w-6 h-6 z-[1002]"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              top: "30px",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)"
+            }}
+          >
+            <div className={`
+              flex items-center justify-center rounded-md w-6 h-6
+              ${isDark 
+                ? "bg-[#020d00] border border-gray-700 text-white" 
+                : "bg-white border border-gray-300 text-gray-700"
+              }
+            `}>
+              {isCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </div>
           </button>
+          
+          {/* Mobile close button */}
+          <div className="flex items-center">
+            <button
+              onClick={toggleSidebar}
+              className="lg:hidden p-1 rounded-md"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Menu */}
@@ -126,9 +176,11 @@ export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
               >
                 <div className="flex items-center gap-3">
                   <item.icon className="w-5 h-5" />
-                  {item.label}
+                  {!isCollapsed && item.label}
                 </div>
-                {item.active && <ChevronRight className="w-4 h-4" />}
+                {item.active && !isCollapsed && (
+                  <ChevronRight className="w-4 h-4" />
+                )}
               </Link>
             ))}
           </div>
@@ -150,7 +202,7 @@ export default function UserSidebar({ isSidebarOpen, toggleSidebar }) {
             }`}
           >
             <LogOut className="w-5 h-5" />
-            Logout
+            {!isCollapsed && "Logout"}
           </button>
         </div>
       </div>

@@ -210,7 +210,7 @@ export default function ProfilePage() {
           <InfoCard
             icon={BadgeCheck}
             title="Status"
-            value={user.is_active ? "Active" : "Inactive"}
+            value={true ? "Active" : "Inactive"}
           />
         </div>
 

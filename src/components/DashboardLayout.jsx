@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
-import { useState } from "react";
+import { useSidebar } from "@/lib/sidebarContext";
 import Sidebar from "./Sidebar";
 import TopHeader from "./TopHeader";
 import ThemeToggle from "./ThemeToggle";
@@ -8,11 +8,7 @@ import ThemeToggle from "./ThemeToggle";
 export default function DashboardLayout({ children }) {
   const { isDark } = useTheme();
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const { isSidebarOpen, isCollapsed, toggleSidebar, toggleCollapse } = useSidebar();
 
   return (
     <div
@@ -23,7 +19,12 @@ export default function DashboardLayout({ children }) {
       }`}
     >
       <ThemeToggle />
-      <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar
+        toggleCollapse={toggleCollapse}
+        isCollapsed={isCollapsed}
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+      />
 
       <div className="flex-1 flex flex-col lg:ml-0">
         <TopHeader toggleSidebar={toggleSidebar} user={user} />

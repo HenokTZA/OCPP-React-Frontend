@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { fetchJson } from "@/lib/api";
 import { useTheme } from "@/lib/theme";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { X } from "lucide-react";
 
@@ -229,6 +229,64 @@ export default function MapPage() {
               icon={markerIcon}
               eventHandlers={{ click: () => navigate(to) }}
             >
+              <Tooltip
+                direction="top"
+                offset={[0, -12]}
+                opacity={1}
+                className="custom-tooltip"
+              >
+                <div className="text-center space-y-2">
+                  <div className={`font-bold text-sm ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}>
+                    {cp.name || cp._id}
+                  </div>
+                  <div className={`text-xs ${
+                    isDark ? "text-gray-300" : "text-gray-600"
+                  }`}>
+                    <span className="inline-flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        cp.status?.toLowerCase() === 'charging' ? 'bg-green-500' :
+                        cp.status?.toLowerCase() === 'available' ? 'bg-blue-500' :
+                        cp.status?.toLowerCase() === 'finishing' ? 'bg-yellow-500' :
+                        cp.status?.toLowerCase() === 'faulted' ? 'bg-red-500' :
+                        cp.status?.toLowerCase() === 'unavailable' ? 'bg-gray-500' :
+                        'bg-gray-400'
+                      }`}></div>
+                      {cp.owner_username || "Unknown Owner"}
+                    </span>
+                  </div>
+                  <div className={`text-xs font-medium ${
+                    isDark ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                      cp.status?.toLowerCase() === 'charging' ? (isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-800') :
+                      cp.status?.toLowerCase() === 'available' ? (isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800') :
+                      cp.status?.toLowerCase() === 'finishing' ? (isDark ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-800') :
+                      cp.status?.toLowerCase() === 'faulted' ? (isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-800') :
+                      cp.status?.toLowerCase() === 'unavailable' ? (isDark ? 'bg-gray-800/30 text-gray-400' : 'bg-gray-100 text-gray-800') :
+                      (isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-800')
+                    }`}>
+                      {cp.status ? cp.status.charAt(0).toUpperCase() + cp.status.slice(1) : 'Unknown'}
+                    </span>
+                  </div>
+                  <div className={`text-xs font-medium ${
+                    isDark ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {Number.isFinite(cp._price_kwh) ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="text-lg">⚡</span>
+                        {cp._price_kwh}€/kWh
+                        {Number.isFinite(cp._price_hour) && (
+                          <span className="text-gray-400">· {cp._price_hour}€/h</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Price not available</span>
+                    )}
+                  </div>
+                </div>
+              </Tooltip>
               <Popup>
                 <div className="space-y-2">
                   <div className="font-semibold text-gray-900">
@@ -486,6 +544,73 @@ export default function MapPage() {
           </div>
         </div>
       )}
+      
+              <style jsx global>{`
+          .custom-tooltip .leaflet-tooltip-content {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+            border: 1px solid rgba(139, 92, 246, 0.2) !important;
+            border-radius: 16px !important;
+            box-shadow: 
+              0 10px 25px -5px rgba(0, 0, 0, 0.1),
+              0 4px 6px -2px rgba(0, 0, 0, 0.05),
+              0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+            padding: 12px 16px !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+            max-width: 220px !important;
+            backdrop-filter: blur(8px) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transform: translateY(0) !important;
+            opacity: 1 !important;
+          }
+          
+          .custom-tooltip .leaflet-tooltip-content:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 
+              0 20px 40px -10px rgba(0, 0, 0, 0.15),
+              0 8px 16px -4px rgba(0, 0, 0, 0.1),
+              0 0 0 1px rgba(255, 255, 255, 0.9) !important;
+          }
+          
+          .custom-tooltip .leaflet-tooltip-content::before {
+            border-top-color: #ffffff !important;
+            border-width: 8px !important;
+            margin-left: -8px !important;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+          }
+          
+          .custom-tooltip .leaflet-tooltip-content::after {
+            border-top-color: rgba(139, 92, 246, 0.2) !important;
+            border-width: 9px !important;
+            margin-left: -9px !important;
+            margin-top: 1px !important;
+          }
+          
+          /* Dark theme support */
+          .dark .custom-tooltip .leaflet-tooltip-content {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+            border: 1px solid rgba(139, 92, 246, 0.3) !important;
+            box-shadow: 
+              0 10px 25px -5px rgba(0, 0, 0, 0.3),
+              0 4px 6px -2px rgba(0, 0, 0, 0.1),
+              0 0 0 1px rgba(31, 41, 55, 0.8) !important;
+          }
+          
+          .dark .custom-tooltip .leaflet-tooltip-content:hover {
+            box-shadow: 
+              0 20px 40px -10px rgba(0, 0, 0, 0.4),
+              0 8px 16px -4px rgba(0, 0, 0, 0.2),
+              0 0 0 1px rgba(31, 41, 55, 0.9) !important;
+          }
+          
+          .dark .custom-tooltip .leaflet-tooltip-content::before {
+            border-top-color: #1f2937 !important;
+          }
+          
+          .dark .custom-tooltip .leaflet-tooltip-content::after {
+            border-top-color: rgba(139, 92, 246, 0.3) !important;
+          }
+        `}</style>
     </div>
   );
 }
