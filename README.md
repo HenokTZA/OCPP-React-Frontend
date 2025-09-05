@@ -233,6 +233,8 @@ curl -s "%BASE%/api/charge-points/<pk>/" ^
 {"pk":"BURA","id":"BURA","name":"BURA","connector_id":0,"status":"Unavailable","updated":"2025-09-05T09:14:06.478293Z","price_per_kwh":"500.000","price_per_hour":"250.000","location":"234","lat":"46.876700","lng":"7.559829","owner_username":"bura","plug_type":"type2","max_power_kw":"144.00","access_type":"public"}
 ```
 
+## Quick Start (Windows CMD)
+
 ---
 
 ## Endpoint Reference
