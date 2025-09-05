@@ -247,7 +247,7 @@ curl -s -X POST "%BASE%/api/charge-points/<pk>/command/" -H "Authorization: Bear
 {"detail":"queued"}
 ```
 
-**backend log:**
+**backend logs:**
 ```json
 [CMD] BURA → RemoteStartTransaction {'id_tag': 'TAG123', 'connector_id': 1}
 INFO:ocpp:BURA: send [2,"85912e8b-bf6f-400a-9c61-bc00657c6891","RemoteStartTransaction",{"idTag":"TAG123","connectorId":1}]
