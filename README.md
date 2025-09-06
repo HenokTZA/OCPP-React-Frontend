@@ -233,6 +233,17 @@ curl -s "%BASE%/api/charge-points/<pk>/" ^
 {"pk":"BURA","id":"BURA","name":"BURA","connector_id":0,"status":"Unavailable","updated":"2025-09-05T09:14:06.478293Z","price_per_kwh":"500.000","price_per_hour":"250.000","location":"234","lat":"46.876700","lng":"7.559829","owner_username":"bura","plug_type":"type2","max_power_kw":"144.00","access_type":"public"}
 ```
 
+### 15) Revenue increase/decrease over month
+
+```bat
+curl -s "%BASE%/api/sessions/revenue/mom/" -H "Authorization: Bearer %ACCESS%"
+```
+
+**Success (example):**
+```json
+{"this_month":{"start":"2025-09-01T00:00:00+00:00","end":"2025-09-30T23:59:59.999999+00:00","total":"1387224.87"},"last_month":{"start":"2025-08-01T00:00:00+00:00","end":"2025-08-31T23:59:59.999999+00:00","total":"16373.58"},"delta":{"absolute":"1370851.29","percent":8372.336959907363,"direction":"up"}}
+```
+
 ## Quick Start (Windows CMD)
 
 ### 1) Start Remote Transaction
