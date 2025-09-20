@@ -128,6 +128,11 @@ export function fetchRevenue() {
   return fetchJson("/sessions/revenue/");
 }
 
+/** Fetch thismonth and last month revenue */
+export function fetchMonthlyRevenue() {
+  return fetchJson("/sessions/revenue/mom/");
+}
+
 /** Update charge point pricing */
 export function updateChargePointPricing(pk, priceKwh, priceHour) {
   return patchJson(`/charge-points/${encodeURIComponent(pk)}/`, {
@@ -153,17 +158,27 @@ export function updateChargePointLocation(
 
 /** Fetch all dashboard data in parallel */
 export async function fetchDashboardData() {
-  const [chargePoints, sessions, stats, revenue] = await Promise.all([
-    fetchChargePoints(),
-    fetchRecentSessions(),
-    fetchChargePointStats(),
-    fetchRevenue(),
-  ]);
+  const [chargePoints, sessions, stats, revenue, revenueIncrease] =
+    await Promise.all([
+      fetchChargePoints(),
+      fetchRecentSessions(),
+      fetchChargePointStats(),
+      fetchRevenue(),
+      fetchMonthlyRevenue(),
+    ]);
 
   return {
     chargePoints,
     sessions,
     stats,
     revenue,
+    revenueIncrease: revenueIncrease.last_month
+      ? (
+          ((revenueIncrease.this_month.total -
+            revenueIncrease.last_month.total) /
+            revenueIncrease.last_month.total) *
+          100
+        ).toFixed(1)
+      : null,
   };
 }

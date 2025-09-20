@@ -25,7 +25,7 @@ export default function TimelinePage() {
       setRefreshing(true);
       setError(null);
       const data = await fetchJson("/sessions/");
-      setRows(data || []);
+      setRows(data.results || []);
     } catch (err) {
       setError("Failed to load charging sessions");
       console.error("Error fetching transactions:", err);

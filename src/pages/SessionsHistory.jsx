@@ -9,7 +9,7 @@ export default function SessionsHistory() {
   const { isDark } = useTheme();
   const [rows, setRows] = useState([]);
   const [cps, setCps] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const pageSize = 25;
   const [count, setCount] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export default function SessionsHistory() {
     let cancel = false;
     setLoading(true);
     Promise.all([
-      fetchJson(`/sessions/?page=${page}&page_size=${pageSize}`),
+      fetchJson(`/sessions/?offset=${page * 30}`),
       fetchJson(`/charge-points/`),
     ])
       .then(([res, c]) => {
@@ -195,7 +195,7 @@ export default function SessionsHistory() {
                     ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                     : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                 }`}
-                disabled={page <= 1}
+                disabled={page <= 0}
                 onClick={() => setPage((p) => p - 1)}
               >
                 <ChevronLeft size={16} className="mr-1" />

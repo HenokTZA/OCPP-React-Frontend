@@ -13,6 +13,7 @@ import {
   DollarSign,
   BarChart3,
   AlertCircle,
+  TrendingDown,
 } from "lucide-react";
 
 import "leaflet/dist/leaflet.css";
@@ -37,6 +38,7 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState(null);
   const [revenue, setRevenue] = useState(null);
+  const [revenueIncrease, setRevenueIncrease] = useState(null);
 
   // helper
   const money = (n) => {
@@ -57,11 +59,12 @@ export default function Dashboard() {
 
     const load = () =>
       fetchDashboardData().then(
-        ({ chargePoints, sessions, stats, revenue }) => {
+        ({ chargePoints, sessions, stats, revenue, revenueIncrease }) => {
           setCps(chargePoints);
           setSes(sessions);
           setStats(stats);
           setRevenue(revenue);
+          setRevenueIncrease(revenueIncrease);
         }
       );
 
@@ -403,9 +406,17 @@ export default function Dashboard() {
                   {money(monthRevenue)}
                 </div>
                 <div className="flex items-center">
-                  <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                  <span className="text-xs font-medium text-emerald-500">
-                    +12.5% from last month
+                  {revenueIncrease > 0 ? (
+                    <TrendingUp className={`w-4 h-4 text-emerald-500 mr-1`} />
+                  ) : (
+                    <TrendingDown className={`w-4 h-4 text-rose-500 mr-1`} />
+                  )}
+                  <span
+                    className={`text-xs font-medium ${
+                      revenueIncrease > 0 ? "text-emerald-500" : "text-rose-500"
+                    }`}
+                  >
+                    +{revenueIncrease}% from last month
                   </span>
                 </div>
               </div>
