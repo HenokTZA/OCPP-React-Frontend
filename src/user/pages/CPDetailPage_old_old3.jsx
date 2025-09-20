@@ -50,11 +50,7 @@ export default function CPDetailPage({ byCode = false }) {
   const [processedSession, setProcessedSession] = useState(false);
   const [amount, setAmount] = useState(5);
 
-  const isCharging = useMemo(
-    () => cp?.status?.toLowerCase?.() === "charging",
-    [cp?.status]
-  );  
-
+  const isCharging = useMemo(() => cp?.status === "Charging", [cp?.status]);
   const cpRef = useRef(null);
   useEffect(() => {
     cpRef.current = cp;
@@ -85,12 +81,12 @@ export default function CPDetailPage({ byCode = false }) {
     return false;
   }
 
-    // Poll helper (used after start to flip button to Stop)
-  async function pollUntilCharging(timeoutMs = 30000, everyMs = 1000) {
+  // After checkout → wait until CP reports Charging so the UI shows Stop
+  async function pollUntilCharging(timeoutMs = 15000, everyMs = 1000) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const data = await refresh();
-      if (data?.status?.toLowerCase?.() === "charging") return true;
+      if (data?.status === "Charging") return true;
       await new Promise((r) => setTimeout(r, everyMs));
     }
     return false;
@@ -118,7 +114,6 @@ export default function CPDetailPage({ byCode = false }) {
             );
             // Remove query param so refresh won't re-trigger start
             window.history.replaceState({}, "", window.location.pathname);
-            // Wait until the CP actually switches to Charging so the button flips to Stop
             await pollUntilCharging();
           } finally {
             setBusy(false);
